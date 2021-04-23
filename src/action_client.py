@@ -53,10 +53,10 @@ class action_client:
 
 
     def main(self):
-        self.send_goal(0.2, 0.3)
+        self.send_goal(0.1, 0.3)
         
         while self.client.get_state() < 2:
-            if self.distance >= 2:
+            if self.distance >= 1000:
                 self.client.cancel_goal()
                 print("nonono") 
                 break

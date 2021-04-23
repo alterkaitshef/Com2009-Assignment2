@@ -39,10 +39,15 @@ class SearchSweepAS(object):
         self.y0 = 0.0
         self.stop_distance = 0
         self.desired_velocity = 0
+        self.turn_direction = False
         
         # define a Twist instance, which can be used to set robot velocities
         self.distance = 0.0
         self.angle = 0.0
+
+        # get start time 
+        self.startTime = rospy.get_rostime()
+        print(self.startTime.secs)
 
     def callback_function(self, scan_data):
         # LaserScan stuff
@@ -75,21 +80,52 @@ class SearchSweepAS(object):
             self.actionserver.set_aborted()
             return
 
-        while self.distance - x >= goal.approach_distance:
-            self.robot_controller.publish()
-            if self.actionserver.is_preempt_requested():
-                rospy.loginfo('Cancelling moving.')
-                self.actionserver.set_preempted()
-                # stop the robot:
-                self.robot_controller.stop()
-                success = False
-                # exit the loop:
-                break
+        while self.startTime.secs < 60: #rospy.get_rostime().secs- 
+            #print(self.startTime.secs)
+            if self.distance - x >= goal.approach_distance:
+                self.robot_controller.publish()
+                if self.actionserver.is_preempt_requested():
+                    rospy.loginfo('Cancelling moving.')
+                    self.actionserver.set_preempted()
+                    # stop the robot:
+                    self.robot_controller.stop()
+                    success = False
+                    # exit the loop:
+                    break
+                
+                self.robot_controller.set_move_cmd(goal.fwd_velocity, 0.0)
+                #self.rate.sleep()
+                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
+                self.actionserver.publish_feedback(self.feedback)
+            elif self.distance - x <= goal.approach_distance:
+                self.robot_controller.set_move_cmd(-0.15, 0)
+                self.robot_controller.publish()
+                time.sleep(0.5)
+                self.robot_controller.set_move_cmd(0, 0)
+                self.robot_controller.publish()
+                if self.actionserver.is_preempt_requested():
+                    rospy.loginfo('Cancelling moving.')
+                    self.actionserver.set_preempted()
+                    # stop the robot:
+                    self.robot_controller.stop()
+                    success = False
+                    # exit the loop:
+                    break
+                
+                if self.turn_direction == True: 
+                    self.robot_controller.set_move_cmd(0, 0.26)
+                    self.turn_direction = False
+                    time.sleep(0.5)
+                elif self.turn_direction == False: 
+                    self.robot_controller.set_move_cmd(0, -0.26)
+                    self.turn_direction = True
+                    time.sleep(0.5)
+                    
+
+                #self.rate.sleep()
+                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
+                self.actionserver.publish_feedback(self.feedback)
             
-            self.robot_controller.set_move_cmd(goal.fwd_velocity, 0.0)
-            #self.rate.sleep()
-            self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
-            self.actionserver.publish_feedback(self.feedback)
             
             
 
