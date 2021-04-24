@@ -49,10 +49,10 @@ class SearchSweepAS(object):
 
     def callback_function(self, scan_data):
         # front detection
-        front_left_arc = scan_data.ranges[0:11]
-        front_right_arc = scan_data.ranges[-10:] # last 10 elements in array
+        front_left_arc = scan_data.ranges[0:1]
+        front_right_arc = scan_data.ranges[-1:] # last 10 elements in array
         front_arc = np.array(front_left_arc[::-1] + front_right_arc[::-1])
-        front_arc_angle = np.arange(-10,11)
+        front_arc_angle = np.arange(-1,1)
 
         # find the miniumum object distance within the frontal laserscan arc:
         self.front_distance = front_arc.min()
@@ -61,9 +61,9 @@ class SearchSweepAS(object):
         #print("front angle: {}".format(self.front_angle))
         
         #right detection
-        right_arc = scan_data.ranges[180:359]
+        right_arc = scan_data.ranges[250:360]
         right_side_arc = np.array(right_arc[::1])
-        right_arc_angle = np.arange(181,360)
+        right_arc_angle = np.arange(250,360)
 
         # find the miniumum object distance within the right laserscan arc:
         self.right_distance = right_side_arc.min()
@@ -72,9 +72,9 @@ class SearchSweepAS(object):
         #print("right angle: {}".format(self.right_angle))
 
         #left detection
-        left_arc = scan_data.ranges[0:179]
+        left_arc = scan_data.ranges[1:110]
         left_side_arc = np.array(left_arc[::1])
-        left_arc_angle = np.arange(0,179)
+        left_arc_angle = np.arange(1,110)
 
         # find the miniumum object distance within the left laserscan arc:
         self.left_distance = left_side_arc.min()
@@ -168,6 +168,13 @@ class SearchSweepAS(object):
                 
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
+            elif self.right_distance > goal.approach_distance and self.right_distance > self.left_distance:
+                difference = (self.right_distance - goal.approach_distance)
+                self.robot_controller.set_move_cmd(goal.fwd_velocity, -0.26)
+                self.robot_controller.publish()
+                
+                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
+                self.actionserver.publish_feedback(self.feedback)
             elif self.left_distance > goal.approach_distance and self.right_distance > self.left_distance:
                 difference = (self.left_distance - goal.approach_distance)
                 self.robot_controller.set_move_cmd(goal.fwd_velocity, -0.26)
@@ -175,11 +182,37 @@ class SearchSweepAS(object):
                 
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
-            else: #go foward
-                self.robot_controller.set_move_cmd(goal.fwd_velocity, 0.0)
+            elif self.left_distance > goal.approach_distance and self.right_distance < self.left_distance:
+                difference = (self.left_distance - goal.approach_distance)
+                self.robot_controller.set_move_cmd(goal.fwd_velocity, 0.26)
+                self.robot_controller.publish()
+                
+                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
+                self.actionserver.publish_feedback(self.feedback)
+            else:
+                self.robot_controller.set_move_cmd(0, 0.1)
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
+            '''elif self.right_distance < goal.approach_distance:
+                self.robot_controller.set_move_cmd(0.0, 0.0)
+                self.robot_controller.publish()
+                self.robot_controller.set_move_cmd(-0.1, 0.26)
+                self.robot_controller.publish()
+                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
+                self.actionserver.publish_feedback(self.feedback)
+            elif self.left_distance < goal.approach_distance:
+                self.robot_controller.set_move_cmd(0.0, 0.0)
+                self.robot_controller.publish()
+                self.robot_controller.set_move_cmd(-0.2, -0.26)
+                self.robot_controller.publish()
+                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
+                self.actionserver.publish_feedback(self.feedback)
+            else:
+                self.robot_controller.set_move_cmd(0.2, 0)
+                self.robot_controller.publish()
+                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
+                self.actionserver.publish_feedback(self.feedback)'''
 
         
             '''
@@ -227,7 +260,7 @@ class SearchSweepAS(object):
                 self.robot_controller.publish()
                 #self.rate.sleep()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
-                self.actionserver.publish_feedback(self.feedback)
+                self.actionserver.publish_feedback(self.feedback)'''
                 
         if success:
             rospy.loginfo('Stop sucessfully.')
