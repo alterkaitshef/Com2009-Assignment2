@@ -89,6 +89,17 @@ class ActionServer(object):
         #print("left distance: {}".format(self.left_distance))
         #print("left angle: {}".format(self.left_angle))
 
+        #back detection
+        left_arc = scan_data.ranges[22:61]
+        left_side_arc = np.array(left_arc[::1])
+        left_arc_angle = np.arange(22,61)
+
+        # find the miniumum object distance within the left laserscan arc:
+        self.left_distance = left_side_arc.min()
+        self.left_angle = left_arc_angle[np.argmin(left_side_arc)]
+        #print("left distance: {}".format(self.left_distance))
+        #print("left angle: {}".format(self.left_angle))
+
     def robot_stop(self):
         start_time = rospy.get_rostime()
         while rospy.get_rostime().secs - start_time.secs < 0.25:
@@ -136,56 +147,68 @@ class ActionServer(object):
             self.actionserver.set_aborted()
             return
         
-        while rospy.get_rostime().secs- self.startTime.secs < 60:
+        while rospy.get_rostime().secs- self.startTime.secs < 180:
             if self.front_distance > goal.approach_distance and self.left_distance > goal.approach_distance and self.right_distance > goal.approach_distance:
-                self.robot_controller.set_move_cmd(0.3, 0)#
+                self.robot_controller.set_move_cmd(0.25, 0)#
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
-                print("----------------------------------------------------front")
+                #print("----------------------------------------------------front")
             elif self.front_distance < goal.approach_distance and self.left_distance > goal.approach_distance and self.right_distance > goal.approach_distance: 
-                self.robot_controller.set_move_cmd(0, 0.4)#
+                if self.left_distance > self.right_distance:
+                    self.robot_controller.stop()
+                    self.robot_controller.set_move_cmd(0, 0.6)#
+                    self.robot_controller.publish()
+                elif self.left_distance <= self.right_distance:
+                    self.robot_controller.stop()
+                    self.robot_controller.set_move_cmd(0, -0.6)#
+                    self.robot_controller.publish()
+                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
+                self.actionserver.publish_feedback(self.feedback)
+                print("----------------------------------------------------decide")
+            elif self.front_distance > goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance < goal.approach_distance:
+                self.robot_controller.stop()
+                self.robot_controller.set_move_cmd(0.25, 0)#
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
-                print("----------------------------------------------------back")
             elif self.front_distance > goal.approach_distance and self.left_distance > goal.approach_distance and self.right_distance < goal.approach_distance:
-                self.robot_controller.set_move_cmd(0, 0.4)#
+                self.robot_controller.stop()
+                self.robot_controller.set_move_cmd(0.08, 0.6)#
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
                 print("----------------------------------------------------case3")
             elif self.front_distance > goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance > goal.approach_distance:
-                self.robot_controller.set_move_cmd(0, -0.4)#
+                self.robot_controller.stop()
+                self.robot_controller.set_move_cmd(0.08, -0.6)#
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
                 print("----------------------------------------------------case4")
-            elif self.front_distance < goal.approach_distance and self.right_distance > goal.approach_distance and self.left_distance < goal.approach_distance:
-                self.robot_controller.set_move_cmd(0, 0.4)#
+            elif self.front_distance < goal.approach_distance and self.left_distance > goal.approach_distance and self.right_distance < goal.approach_distance:
+                self.robot_controller.stop()
+                self.robot_controller.set_move_cmd(0, 0.6)#
+                self.robot_controller.publish()
+                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
+                self.actionserver.publish_feedback(self.feedback)
+                print("----------------------------------------------------case5")
+            elif self.front_distance < goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance > goal.approach_distance:
+                self.robot_controller.stop()
+                self.robot_controller.set_move_cmd(0, -0.6)#
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
                 print("----------------------------------------------------case6")
-            elif self.front_distance < goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance > goal.approach_distance:
-                self.robot_controller.set_move_cmd(0, -0.4)#
+            elif self.front_distance < goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance < goal.approach_distance:
+                self.robot_controller.stop()
+                self.robot_controller.set_move_cmd(-0.25, 0.4)#
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
                 print("----------------------------------------------------case7")
-            elif self.front_distance < goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance < goal.approach_distance:
-                self.robot_controller.set_move_cmd(-0.3, 0.4)#
-                self.robot_controller.publish()
-                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
-                self.actionserver.publish_feedback(self.feedback)
-                print("----------------------------------------------------case8")
-            elif self.front_distance > goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance < goal.approach_distance:
-                self.robot_controller.set_move_cmd(0.3, 0)#
-                self.robot_controller.publish()
-                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
-                self.actionserver.publish_feedback(self.feedback)
             else:
-                #self.robot_controller.set_move_cmd(0, 0.5)#
+                #self.robot_controller.set_move_cmd(0, 0.8)#
                 #self.robot_controller.publish()
                 #self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 #self.actionserver.publish_feedback(self.feedback)
