@@ -17,7 +17,7 @@ import numpy as np
 from sensor_msgs.msg import LaserScan
 from math import sqrt
 
-class SearchSweepAS(object):
+class ActionServer(object):
     feedback = SearchFeedback() 
     result = SearchResult()
 
@@ -40,8 +40,14 @@ class SearchSweepAS(object):
         self.turn_direction = False
         
         # define a Twist instance, which can be used to set robot velocities
-        self.distance = 0.0
-        self.angle = 0.0
+        self.front_distance = 0.0
+        self.front_angle = 0.0
+        self.right_distance = 0.0
+        self.right_angle = 0.0
+        self.left_distance = 0.0
+        self.left_angle = 0.0
+        self.back_distance = 0.0
+        self.back_angle = 0.0
 
         # get start time 
         self.startTime = rospy.get_rostime()
@@ -159,8 +165,8 @@ class SearchSweepAS(object):
             return
         
         while rospy.get_rostime().secs- self.startTime.secs < 60:
-            init_right_difference = (self.right_distance - goal.approach_distance)
-            init_left_difference = (self.left_distance - goal.approach_distance)
+            #init_right_difference = (self.right_distance - goal.approach_distance)
+            #init_left_difference = (self.left_distance - goal.approach_distance)
             if self.right_distance > goal.approach_distance and self.right_distance < self.left_distance:
                 difference = (self.right_distance - goal.approach_distance)
                 self.robot_controller.set_move_cmd(goal.fwd_velocity, 0.26)
@@ -268,10 +274,10 @@ class SearchSweepAS(object):
             self.result.closest_object_distance = self.front_distance
             self.result.closest_object_angle = self.front_angle
             self.actionserver.set_succeeded(self.result)
-            self.robot_controller.stop()'''
+            self.robot_controller.stop()
             
                 
 if __name__ == '__main__':
     rospy.init_node('search_action_server')
-    SearchSweepAS()
+    ActionServer()
     rospy.spin()
