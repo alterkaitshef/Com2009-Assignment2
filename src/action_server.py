@@ -25,7 +25,7 @@ class ActionServer(object):
         self.actionserver = actionlib.SimpleActionServer("/search_action_server", 
             SearchAction, self.action_server_launcher, auto_start=False)
         self.actionserver.start()
-        self.rate = rospy.Rate(1000)
+        self.rate = rospy.Rate(1000000)
 
         self.scanSub = rospy.Subscriber('scan', LaserScan, self.callback_function)
 
@@ -169,7 +169,7 @@ class ActionServer(object):
                         #self.robot_controller.publish()
                         #self.robot_controller.set_move_cmd(-5, 0)
                         #self.robot_controller.publish()
-                        self.robot_controller.set_move_cmd(0.5, 1)#
+                        self.robot_controller.set_move_cmd(0.5, 1.5)#
                         self.robot_controller.publish()
                     elif self.left_distance < self.right_distance:
                         #self.robot_controller.stop()
@@ -177,7 +177,7 @@ class ActionServer(object):
                         #self.robot_controller.publish()
                         #self.robot_controller.set_move_cmd(-5, 0)
                         #self.robot_controller.publish()
-                        self.robot_controller.set_move_cmd(0.5, -1)#
+                        self.robot_controller.set_move_cmd(0.5, -1.5)#
                         self.robot_controller.publish()
                     self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                     self.actionserver.publish_feedback(self.feedback)
@@ -189,7 +189,7 @@ class ActionServer(object):
                         #self.robot_controller.publish()
                         #self.robot_controller.set_move_cmd(-5, 0)
                         #self.robot_controller.publish()
-                        self.robot_controller.set_move_cmd(0, 3)#
+                        self.robot_controller.set_move_cmd(0, 2.5)#
                         self.robot_controller.publish()
                     elif self.left_distance < self.right_distance:
                         self.robot_controller.stop()
@@ -197,7 +197,7 @@ class ActionServer(object):
                         #self.robot_controller.publish()
                         #self.robot_controller.set_move_cmd(-5, 0)
                         #self.robot_controller.publish()
-                        self.robot_controller.set_move_cmd(0, -3)#
+                        self.robot_controller.set_move_cmd(0, -2.5)#
                         self.robot_controller.publish()
                     self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                     self.actionserver.publish_feedback(self.feedback)
@@ -212,7 +212,7 @@ class ActionServer(object):
                     self.robot_controller.stop()
                     #self.robot_controller.set_move_cmd(-2.5, 0)
                     #self.robot_controller.publish()
-                    self.robot_controller.set_move_cmd(0.5, 2)#
+                    self.robot_controller.set_move_cmd(0.5, 1)#
                     self.robot_controller.publish()
                     self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                     self.actionserver.publish_feedback(self.feedback)
@@ -221,7 +221,7 @@ class ActionServer(object):
                     self.robot_controller.stop()
                     #self.robot_controller.set_move_cmd(-2.5, 0)
                     #self.robot_controller.publish()
-                    self.robot_controller.set_move_cmd(0.5, -2)#
+                    self.robot_controller.set_move_cmd(0.5, -1)#
                     self.robot_controller.publish()
                     self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                     self.actionserver.publish_feedback(self.feedback)
