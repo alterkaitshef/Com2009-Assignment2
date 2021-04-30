@@ -48,8 +48,8 @@ class ActionServer(object):
         self.left_angle = 0.0
         self.back_distance = 0.0
         self.back_angle = 0.0
-        self.front_round_distance = 0.0
-        self.back_round_distance = 0.0
+        self.front_round_distance = 1.0
+        self.back_round_distance = 1.0
 
         # get start time 
         self.startTime = rospy.get_rostime()
@@ -176,6 +176,15 @@ class ActionServer(object):
         while go:
             if self.front_round_distance <= d:
                 print("front hit")
+                rospy.loginfo('Cancelling the camera sweep.')
+                self.actionserver.set_preempted()
+                # stop the robot:
+                self.robot_controller.stop()
+                success = False
+                # exit the loop:
+                break
+            elif self.all_round_distance <= d:
+                print("back hit")
                 rospy.loginfo('Cancelling the camera sweep.')
                 self.actionserver.set_preempted()
                 # stop the robot:
