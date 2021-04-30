@@ -3,7 +3,8 @@
 import rospy
 import actionlib
 
-from com2009_actions.msg import SearchAction, SearchGoal
+
+from com2009_actions.msg import SearchAction, SearchGoal, CameraSweepAction, CameraSweepGoal
 from move_tb3 import MoveTB3
 from tb3_odometry import TB3Odometry
 from geometry_msgs.msg import Twist
@@ -60,6 +61,7 @@ class action_client:
                 self.client.cancel_goal()
                 print("nonono") 
                 break
+
             self.rate.sleep()
 
         print("RESULT: {}".format(self.client.get_result()))
