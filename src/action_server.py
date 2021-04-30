@@ -26,7 +26,7 @@ class ActionServer(object):
         self.actionserver = actionlib.SimpleActionServer("/search_action_server", 
             SearchAction, self.action_server_launcher, auto_start=False)
         self.actionserver.start()
-        self.rate = rospy.Rate(10)
+        self.rate = rospy.Rate(1000)
 
         self.scanSub = rospy.Subscriber('scan', LaserScan, self.callback_function)
 
@@ -58,12 +58,16 @@ class ActionServer(object):
 
     def callback_function(self, scan_data):
 
-        all_round_left = scan_data.ranges[0:180]
-        all_round_right = scan_data.ranges[-180:]
-        all_round_arc = np.array(all_round_right[::-1] + all_round_left[::-1])
-        all_round_arc_angle = np.arange(-180, 180)
+        #back_round_left = scan_data.ranges[0:90]
+        #back_round_right = scan_data.ranges[-90:]
+        #back_round_arc = np.array(back_round_right[::-1] + back_round_left[::-1])
+        #back_round_arc_angle = np.arange(-90, 90)
+        
+        back_arc = scan_data.ranges[90:270]
+        back_side_arc = np.array(back_arc[::1])
+        back_round_angle = np.arange(90,270)
 
-        self.all_round_distance = all_round_arc.min()
+        self.back_round_distance = back_side_arc.min()
 
 
         front_round_left = scan_data.ranges[0:90]
@@ -73,12 +77,6 @@ class ActionServer(object):
 
         self.front_round_distance = front_round_arc.min()
         # print("all_round distance: {}".format(self.all_round_distance))
-
-        back_round_arc = np.array(front_round_right[::1] + front_round_left[::1])
-        self.back_round_distance = np.arange(90,-90)
-
-        self
-
 
         # front detection
         front_left_arc = scan_data.ranges[0:21]
@@ -203,98 +201,127 @@ class ActionServer(object):
         if not success:
             self.actionserver.set_aborted()
             return
-        
+
         d = 0.15
         go = True
         while go:
-
-           
             self.check_hit(d)
-            # else:
             if self.front_distance > goal.approach_distance and self.left_distance > goal.approach_distance and self.right_distance > goal.approach_distance:
-                self.robot_controller.set_move_cmd(0.5, 0)#
-                self.robot_controller.publish()
+                #self.robot_controller.set_move_cmd(0.5, 0)#
+                #self.robot_controller.publish()
+                if self.left_distance > self.right_distance:
+                    #self.robot_controller.stop()
+                    #self.robot_controller.set_move_cmd(-5, 0)
+                    #self.robot_controller.publish()
+                    #self.robot_controller.set_move_cmd(-5, 0)
+                    #self.robot_controller.publish()
+                    self.robot_controller.set_move_cmd(0.5, 1)#
+                    self.robot_controller.publish()
+                    self.check_hit(d)
+                elif self.left_distance < self.right_distance:
+                    #self.robot_controller.stop()
+                    #self.robot_controller.set_move_cmd(-5, 0)
+                    #self.robot_controller.publish()
+                    #self.robot_controller.set_move_cmd(-5, 0)
+                    #self.robot_controller.publish()
+                    self.robot_controller.set_move_cmd(0.5, -1)#
+                    self.robot_controller.publish()
+                    self.check_hit(d)
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
                 self.check_hit(d)
-                # print("----------------------------------------------------goooooo")
+                #print("----------------------------------------------------front")
             elif self.front_distance < goal.approach_distance and self.left_distance > goal.approach_distance and self.right_distance > goal.approach_distance: 
                 if self.left_distance > self.right_distance:
                     self.robot_controller.stop()
-                    self.robot_controller.set_move_cmd(0, 1)#
+                    #self.robot_controller.set_move_cmd(-5, 0)
+                    #self.robot_controller.publish()
+                    #self.robot_controller.set_move_cmd(-5, 0)
+                    #self.robot_controller.publish()
+                    self.robot_controller.set_move_cmd(0, 3)#
                     self.robot_controller.publish()
                     self.check_hit(d)
-                elif self.left_distance <= self.right_distance:
+                elif self.left_distance < self.right_distance:
                     self.robot_controller.stop()
-                    self.robot_controller.set_move_cmd(0, -1)#
+                    #self.robot_controller.set_move_cmd(-5, 0)
+                    #self.robot_controller.publish()
+                    #self.robot_controller.set_move_cmd(-5, 0)
+                    #self.robot_controller.publish()
+                    self.robot_controller.set_move_cmd(0, -3)#
                     self.robot_controller.publish()
                     self.check_hit(d)
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
-                self.check_hit(d)
-                
-                # print("----------------------------------------------------decide")
+                print("----------------------------------------------------decide")
             elif self.front_distance > goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance < goal.approach_distance:
                 self.robot_controller.stop()
                 self.robot_controller.set_move_cmd(0.5, 0)#
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
-                self.check_hit(d)
                 self.actionserver.publish_feedback(self.feedback)
+                self.check_hit(d)
             elif self.front_distance > goal.approach_distance and self.left_distance > goal.approach_distance and self.right_distance < goal.approach_distance:
                 self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0.08, 1)#
+                #self.robot_controller.set_move_cmd(-2.5, 0)
+                #self.robot_controller.publish()
+                self.robot_controller.set_move_cmd(0.5, 2)#
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
                 self.check_hit(d)
-                # print("----------------------------------------------------case3")
+                print("----------------------------------------------------case3")
             elif self.front_distance > goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance > goal.approach_distance:
-                self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0.08, -1)#
-                self.robot_controller.publish()
-                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
-                self.actionserver.publish_feedback(self.feedback)
-                self.check_hit(d)
-                # print("----------------------------------------------------case4")
-            elif self.front_distance < goal.approach_distance and self.left_distance > goal.approach_distance and self.right_distance < goal.approach_distance:
                 self.robot_controller.stop()
                 self.robot_controller.set_move_cmd(0, 1)#
                 self.robot_controller.publish()
-                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
-                self.actionserver.publish_feedback(self.feedback)
                 self.check_hit(d)
-                # print("----------------------------------------------------case5")
-            elif self.front_distance < goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance > goal.approach_distance:
+            elif self.left_distance <= self.right_distance:
                 self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0, -1)#
+                #self.robot_controller.set_move_cmd(-5, 0)
+                #self.robot_controller.publish()
+                #self.robot_controller.set_move_cmd(-5, 0)
+                #self.robot_controller.publish()
+                self.robot_controller.set_move_cmd(0, 3)#
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
                 self.check_hit(d)
-                # print("----------------------------------------------------case6")
-            elif self.front_distance < goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance < goal.approach_distance:
+                print("----------------------------------------------------case5")
+            elif self.front_distance < goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance > goal.approach_distance:
+                self.robot_controller.stop()
+                #self.robot_controller.set_move_cmd(-5, 0)
+                #self.robot_controller.publish()
+                #self.robot_controller.set_move_cmd(-5, 0)
+                #self.robot_controller.publish()
+                self.robot_controller.set_move_cmd(0, -3)#
+                self.robot_controller.publish()
+                self.check_hit(d)
+            elif self.left_distance <= self.right_distance:
                 self.robot_controller.stop()
                 if self.left_distance > self.right_distance:
                     self.robot_controller.stop()
-                    self.robot_controller.set_move_cmd(0, 0.6)#
+                    #self.robot_controller.set_move_cmd(-5, 0)
+                    #self.robot_controller.publish()
+                    #self.robot_controller.set_move_cmd(-5, 0)
+                    #self.robot_controller.publish()
+                    self.robot_controller.set_move_cmd(0, 3)#
                     self.robot_controller.publish()
                     self.check_hit(d)
-                elif self.left_distance <= self.right_distance:
+                elif self.left_distance < self.right_distance:
                     self.robot_controller.stop()
-                    self.robot_controller.set_move_cmd(0, -0.6)#
+                    #self.robot_controller.set_move_cmd(-5, 0)
+                    #self.robot_controller.publish()
+                    #self.robot_controller.set_move_cmd(-5, 0)
+                    #self.robot_controller.publish()
+                    self.robot_controller.set_move_cmd(0, -3)#
                     self.robot_controller.publish() 
                     self.check_hit(d)
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
                 self.check_hit(d)
-                # print("----------------------------------------------------case7")
-            # else:
-                #self.robot_controller.set_move_cmd(0, 0.8)#
-                #self.robot_controller.publish()
-                #self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
-                #self.actionserver.publish_feedback(self.feedback)
-                # print("----------------------------------------------------edljfkadf")
+                print("----------------------------------------------------case7")
+            else:
+                print("----------------------------------------------------edljfkadf")
                 
 
             '''
