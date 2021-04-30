@@ -48,12 +48,36 @@ class ActionServer(object):
         self.left_angle = 0.0
         self.back_distance = 0.0
         self.back_angle = 0.0
+        self.front_round_distance = 0.0
+        self.back_round_distance = 0.0
 
         # get start time 
         self.startTime = rospy.get_rostime()
         print(self.startTime.secs)
 
     def callback_function(self, scan_data):
+
+        all_round_left = scan_data.ranges[0:180]
+        all_round_right = scan_data.ranges[-180:]
+        all_round_arc = np.array(all_round_right[::-1] + all_round_left[::-1])
+        all_round_arc_angle = np.arange(-180, 180)
+
+        self.all_round_distance = all_round_arc.min()
+
+
+        front_round_left = scan_data.ranges[0:90]
+        front_round_right = scan_data.ranges[-90:]
+        front_round_arc = np.array(front_round_right[::-1] + front_round_left[::-1])
+        front_round_arc_angle = np.arange(-90, 90)
+
+        self.front_round_distance = front_round_arc.min()
+        # print("all_round distance: {}".format(self.all_round_distance))
+
+        back_round_arc = np.array(front_round_right[::1] + front_round_left[::1])
+        self.back_round_distance = np.arange(90,-90)
+
+        self
+
 
         # front detection
         front_left_arc = scan_data.ranges[0:16]
@@ -64,7 +88,7 @@ class ActionServer(object):
         # find the miniumum object distance within the frontal laserscan arc:
         self.front_distance = front_arc.min()
         self.front_angle = front_arc_angle[np.argmin(front_arc)]
-        #print("front distance: {}".format(self.front_distance))
+        # print("front distance: {}".format(self.front_distance))
         #print("front angle: {}".format(self.front_angle))
         
         #right detection
@@ -75,7 +99,7 @@ class ActionServer(object):
         # find the miniumum object distance within the right laserscan arc:
         self.right_distance = right_side_arc.min()
         self.right_angle = right_arc_angle[np.argmin(right_side_arc)]
-        #print("right distance: {}".format(self.right_distance))
+        # print("right distance: {}".format(self.right_distance))
         #print("right angle: {}".format(self.right_angle))
 
         #left detection
@@ -86,7 +110,7 @@ class ActionServer(object):
         # find the miniumum object distance within the left laserscan arc:
         self.left_distance = left_side_arc.min()
         self.left_angle = left_arc_angle[np.argmin(left_side_arc)]
-        #print("left distance: {}".format(self.left_distance))
+        # print("left distance: {}".format(self.left_distance))
         #print("left angle: {}".format(self.left_angle))
 
         #back detection
@@ -146,10 +170,13 @@ class ActionServer(object):
         if not success:
             self.actionserver.set_aborted()
             return
-        
-        while rospy.get_rostime().secs- self.startTime.secs < 60:
-            if self.front_distance > 100:
-                rospy.loginfo('Cancelling moving.')
+
+        d = 0.05
+        go = True
+        while go:
+            if self.front_round_distance <= d:
+                print("front hit")
+                rospy.loginfo('Cancelling the camera sweep.')
                 self.actionserver.set_preempted()
                 # stop the robot:
                 self.robot_controller.stop()
@@ -283,7 +310,43 @@ class ActionServer(object):
                     print("----------------------------------------------------case7")
                 else:
                     print("----------------------------------------------------edljfkadf")
-                    
+                
+
+            '''
+            if self.right_distance > goal.approach_distance and self.right_distance < self.left_distance:
+                difference = (self.right_distance - goal.approach_distance)
+                self.robot_controller.set_move_cmd(goal.fwd_velocity, 0.26)
+                self.robot_controller.publish()
+                
+                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
+                self.actionserver.publish_feedback(self.feedback)
+            elif self.right_distance > goal.approach_distance and self.right_distance > self.left_distance:
+                difference = (self.right_distance - goal.approach_distance)
+                self.robot_controller.set_move_cmd(goal.fwd_velocity, -0.26)
+                self.robot_controller.publish()
+                
+                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
+                self.actionserver.publish_feedback(self.feedback)
+            elif self.left_distance > goal.approach_distance and self.right_distance > self.left_distance:
+                difference = (self.left_distance - goal.approach_distance)
+                self.robot_controller.set_move_cmd(0, -0.26)
+                self.robot_controller.publish()
+                
+                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
+                self.actionserver.publish_feedback(self.feedback)
+            elif self.left_distance > goal.approach_distance and self.right_distance < self.left_distance:
+                difference = (self.left_distance - goal.approach_distance)
+                self.robot_controller.set_move_cmd(0, 0.26)
+                self.robot_controller.publish()
+                
+                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
+                self.actionserver.publish_feedback(self.feedback)
+            else:
+                self.robot_controller.set_move_cmd(0, 0.1)
+                self.robot_controller.publish()
+                self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
+                self.actionserver.publish_feedback(self.feedback)
+            '''
         if success:
             rospy.loginfo('Stop sucessfully.')
             self.result.total_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
