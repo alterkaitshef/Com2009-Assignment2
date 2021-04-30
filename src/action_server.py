@@ -177,7 +177,7 @@ class ActionServer(object):
 
             
             if self.front_round_distance <= d:
-                print("wall hit")
+                print("front hit")
                 rospy.loginfo('Cancelling the camera sweep.')
                 self.actionserver.set_preempted()
                 # stop the robot:
