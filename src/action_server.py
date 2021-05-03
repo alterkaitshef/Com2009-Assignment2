@@ -124,15 +124,6 @@ class ActionServer(object):
             success = False
             go = False
             sys.exit()
-        elif self.back_round_distance <= d:
-            print("back hit")
-            rospy.loginfo('Cancelling the move.')
-            self.actionserver.set_preempted()
-            # stop the robot:
-            self.robot_controller.stop()
-            success = False
-            go = False
-            sys.exit()
         else:
             print("not hit")
     
