@@ -13,6 +13,7 @@ from tb3_odometry import TB3Odometry
 
 # Import some other useful Python Modules
 import math
+import time
 import numpy as np
 from sensor_msgs.msg import LaserScan
 from math import sqrt
@@ -152,8 +153,8 @@ class ActionServer(object):
             return
 
         d = 0.165
-        go = True
-        while go:
+        go_time = time.time() + 60
+        while time.time() < go_time:
             self.check_hit(d)
             if self.front_distance > goal.approach_distance and self.left_distance > goal.approach_distance and self.right_distance > goal.approach_distance:
                 self.check_hit(d)
