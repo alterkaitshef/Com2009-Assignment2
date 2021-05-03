@@ -18,7 +18,6 @@ from math import sqrt, pow, pi
 import numpy as np
 import time
 
-
 class colour_search(object):
 
     def __init__(self):
@@ -47,14 +46,6 @@ class colour_search(object):
         self.mask = np.zeros((1080,1920,1), np.uint8)
         self.hsv_img = np.zeros((1080,1920,3), np.uint8)
         self.find_target = False
-
-        # define the robot pose variables and set them all to zero to start with:
-        self.x = 0.0
-        self.y = 0.0
-        self.yaw = 0.0
-        self.init_x =  0.0
-        self.init_y = 0.0
-        self.init_yaw = 0.0
 
     def shutdown_ops(self):
         self.robot_controller.stop()
@@ -91,16 +82,16 @@ class colour_search(object):
         cv2.waitKey(1)
 
     def get_init_color(self):
-        color_boundaries = {
-            "Red":    ([0, 200, 100], [8, 255, 255]),
+        color_threshold = {
+            "Red":    ([0, 185, 100], [10, 255, 255]),
             "Blue":   ([115, 224, 100],   [130, 255, 255]),
+            "Green":   ([25, 150, 100], [70, 255, 255]),
+            "Turquoise":   ([75, 150, 100], [100, 255, 255]),
             "Yellow": ([28, 180, 100], [32, 255, 255]),
-            "Green":   ([40, 50, 100], [65, 255, 255]),
-            "Turquoise":   ([75, 50, 100], [90, 255, 255]),
             "Purple":   ([145, 185, 100], [150, 250, 255])
         }
 
-        for color_name, (lower, upper) in color_boundaries.items():
+        for color_name, (lower, upper) in color_threshold.items():
             lower_bound = np.array(lower)
             upper_bound = np.array(upper)
             mask = cv2.inRange(self.hsv_img, lower_bound, upper_bound)
@@ -117,24 +108,23 @@ class colour_search(object):
         time.sleep(5)
         self.robot_controller.stop()
 
-    
-    def rotate_by_degree(self, degree, speed):
+    def rotate(self, degree, speed):
         time.sleep(1)
-        t = math.radians(degree) / speed
+        time_cal = math.radians(degree) / speed
         self.robot_controller.set_move_cmd(0.0, speed)    
         self.robot_controller.publish()
-        t = abs(t)
-        time.sleep(t)
+        time_cal = abs(time_cal)
+        time.sleep(time_cal)
         self.robot_controller.stop()
 
     def main(self):
         while not self.ctrl_c:
             if self.turn == False:
-                self.rotate_by_degree(100, 0.2)
+                self.rotate(100, 0.2)
                 self.get_init_color()
-                self.rotate_by_degree(100, -0.2)
+                self.rotate(100, -0.2)
                 self.go_foward()
-                self.rotate_by_degree(110, 0.2)
+                self.rotate(110, 0.2)
                 self.turn = True
             else:
                 if self.m00 > self.m00_min and self.find_target == False:
@@ -154,16 +144,12 @@ class colour_search(object):
                     
                 if self.find_target == False:    
                     if self.move_rate == 'fast':
-                        #print("MOVING FAST: I can't see anything at the moment, scanning the area...")
                         self.robot_controller.set_move_cmd(0.0, self.turn_vel_fast)
                     elif self.move_rate == 'slow':
-                        #print("MOVING SLOW: A blob of colour of size {:.0f} pixels is in view at y-position: {:.0f} pixels.".format(self.m00, self.cy))
                         self.robot_controller.set_move_cmd(0.0, self.turn_vel_slow)
                     elif self.move_rate == 'stop':
-                        #print("STOPPED: The blob of colour is now dead-ahead at y-position {:.0f} pixels...".format(self.cy))
                         self.robot_controller.set_move_cmd(0.0, 0.0)
                     else:
-                        #print("MOVING SLOW: A blob of colour of size {:.0f} pixels is in view at y-position: {:.0f} pixels.".format(self.m00, self.cy))
                         self.robot_controller.set_move_cmd(0.0, self.turn_vel_slow)
                     
                     self.robot_controller.publish()
