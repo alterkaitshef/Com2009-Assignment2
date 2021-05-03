@@ -114,8 +114,8 @@ class ActionServer(object):
 
     def check_hit(self, d):
         global go
-        if self.front_round_distance <= d:
-            print("front hit")
+        if self.front_round_distance <= d or self.back_round_distance <= d:
+            print("front or back hit")
             rospy.loginfo('Cancelling the move.')
             self.actionserver.set_preempted()
             # stop the robot:
@@ -132,6 +132,8 @@ class ActionServer(object):
             success = False
             go = False
             sys.exit()
+        else:
+            print("not hit")
     
     def action_server_launcher(self, goal):
         success = True
@@ -149,11 +151,12 @@ class ActionServer(object):
             self.actionserver.set_aborted()
             return
 
-        d = 0.15
+        d = 0.165
         go = True
         while go:
             self.check_hit(d)
             if self.front_distance > goal.approach_distance and self.left_distance > goal.approach_distance and self.right_distance > goal.approach_distance:
+                self.check_hit(d)
                 if self.left_distance > self.right_distance:
                     self.robot_controller.set_move_cmd(0.5, 1)#
                     self.robot_controller.publish()
@@ -183,7 +186,7 @@ class ActionServer(object):
                 self.actionserver.publish_feedback(self.feedback)
             elif self.front_distance > goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance < goal.approach_distance:
                 self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0.5, 0)#
+                self.robot_controller.set_move_cmd(0.25, 0)#
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
@@ -193,7 +196,7 @@ class ActionServer(object):
                 #self.robot_controller.set_move_cmd(-1, 0)
                 #self.robot_controller.publish()
                 self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0.3, 0.4)#
+                self.robot_controller.set_move_cmd(0.25, 0.4)#
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
@@ -203,19 +206,19 @@ class ActionServer(object):
                 #self.robot_controller.set_move_cmd(-1, 0)
                 #self.robot_controller.publish()
                 self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0.3, -0.4)#
+                self.robot_controller.set_move_cmd(0.25, -0.4)#
                 self.robot_controller.publish()
                 self.check_hit(d)
                 print("----------------------------------------------------left small front big")
             elif self.front_distance < goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance > goal.approach_distance:
                 self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0.1, -0.8)#
+                self.robot_controller.set_move_cmd(0.1, -0.6)#
                 self.robot_controller.publish()
                 self.check_hit(d)
                 print("----------------------------------------------------left small front small")
             elif self.front_distance < goal.approach_distance and self.left_distance > goal.approach_distance and self.right_distance < goal.approach_distance:
                 self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0.1, 0.8)#
+                self.robot_controller.set_move_cmd(0.1, 0.6)#
                 self.robot_controller.publish()
                 self.check_hit(d)
                 print("----------------------------------------------------right small front small")

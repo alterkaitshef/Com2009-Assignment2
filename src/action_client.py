@@ -52,10 +52,32 @@ class action_client:
         # send the goal to the action server:
         self.client.send_goal(self.goal, feedback_cb=self.feedback_callback)
 
+    def check_hit(self, d):
+        global go
+        if self.front_round_distance <= d or self.back_round_distance <= d:
+            print("front or back hit client")
+            rospy.loginfo('Cancelling the move.')
+            self.actionserver.set_preempted()
+            # stop the robot:
+            self.robot_controller.stop()
+            success = False
+            go = False
+            sys.exit()
+            return True
+        elif self.back_round_distance <= d:
+            print("back hit client")
+            rospy.loginfo('Cancelling the move.')
+            self.actionserver.set_preempted()
+            # stop the robot:
+            self.robot_controller.stop()
+            success = False
+            go = False
+            sys.exit()
+            return True
+
 
     def main(self):
         self.send_goal(0.2, 0.7)
-        
         while self.client.get_state() < 2:
             if self.distance >= 200:
                 self.client.cancel_goal()
