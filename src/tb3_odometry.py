@@ -11,7 +11,7 @@ class TB3Odometry(object):
         (_, _, yaw) = euler_from_quaternion([orientation.x,
             orientation.y, orientation.z, orientation.w],'sxyz')
         
-        self.yaw = self.round(degrees(yaw), 4)
+        self.yaw = self.round(yaw, 4)
         self.posx = self.round(position.x, 4)
         self.posy = self.round(position.y, 4)
     
