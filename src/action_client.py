@@ -14,7 +14,7 @@ class action_client:
     def feedback_callback(self, feedback_data):
         self.distance = feedback_data.current_distance_travelled
         if self.count > 100:
-            print('FEEDBACK: current_distance_travelled: {}'.format(feedback_data.current_distance_travelled))
+            #print('FEEDBACK: current_distance_travelled: {}'.format(feedback_data.current_distance_travelled))
             self.count = 0 
         else: 
             self.count += 1
@@ -85,7 +85,7 @@ class action_client:
 
             self.rate.sleep()
 
-        print("RESULT: {}".format(self.client.get_result()))
+        #print("RESULT: {}".format(self.client.get_result()))
         self.action_complete = True
 
 
