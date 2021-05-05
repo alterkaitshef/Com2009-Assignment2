@@ -17,6 +17,9 @@ import math
 from math import sqrt, pow, pi
 import numpy as np
 import time
+from sensor_msgs.msg import LaserScan
+from math import sqrt
+import sys
 
 class colour_search(object):
 
@@ -29,6 +32,7 @@ class colour_search(object):
 
         self.robot_controller = MoveTB3()
         self.robot_odom = TB3Odometry()
+        self.scanSub = rospy.Subscriber('scan', LaserScan, self.scan_callback_function)
         self.turn_vel_fast = -0.5
         self.turn_vel_slow = -0.1
         self.robot_controller.set_move_cmd(0.0, self.turn_vel_fast)
@@ -46,6 +50,47 @@ class colour_search(object):
         self.mask = np.zeros((1080,1920,1), np.uint8)
         self.hsv_img = np.zeros((1080,1920,3), np.uint8)
         self.find_target = False
+
+        # define a Twist instance, which can be used to set robot velocities
+        self.front_distance = 0.0
+        self.front_angle = 0.0
+        self.right_distance = 0.0
+        self.right_angle = 0.0
+        self.left_distance = 0.0
+        self.left_angle = 0.0
+        self.back_distance = 0.0
+        self.back_angle = 0.0
+    
+    def scan_callback_function(self, scan_data):
+
+        # front detection
+        front_left_arc = scan_data.ranges[0:16]
+        front_right_arc = scan_data.ranges[-15:]
+        front_arc = np.array(front_left_arc[::-1] + front_right_arc[::-1])
+        front_arc_angle = np.arange(-15, 16)
+
+        # find the miniumum object distance within the frontal laserscan arc:
+        self.front_distance = front_arc.min()
+        self.front_angle = front_arc_angle[np.argmin(front_arc)]
+        
+        #right detection
+        right_arc = scan_data.ranges[314:344]
+        right_side_arc = np.array(right_arc[::1])
+        right_arc_angle = np.arange(314,344)
+
+        # find the miniumum object distance within the right laserscan arc:
+        self.right_distance = right_side_arc.min()
+        self.right_angle = right_arc_angle[np.argmin(right_side_arc)]
+
+
+        #left detection
+        left_arc = scan_data.ranges[16:46]
+        left_side_arc = np.array(left_arc[::1])
+        left_arc_angle = np.arange(16,46)
+
+        # find the miniumum object distance within the left laserscan arc:
+        self.left_distance = left_side_arc.min()
+        self.left_angle = left_arc_angle[np.argmin(left_side_arc)]
 
     def shutdown_ops(self):
         self.robot_controller.stop()
@@ -102,11 +147,57 @@ class colour_search(object):
                 print("SEARCH INITIATED: The target colour is {}".format (self.color_name))
                 break
     
-    def go_foward(self):
-        self.robot_controller.set_move_cmd(0.2, 0)    
-        self.robot_controller.publish()
-        time.sleep(5)
-        self.robot_controller.stop()
+    def move_around(self, distance):
+        if self.front_distance > distance and self.left_distance > distance and self.right_distance > distance:
+            if self.left_distance > self.right_distance:
+                self.robot_controller.set_move_cmd(0.35, 0.8)
+            elif self.left_distance < self.right_distance:
+                self.robot_controller.set_move_cmd(0.35, -0.8)
+            self.robot_controller.publish()
+        #case2: if there is no distance in front
+        elif self.front_distance < distance and self.left_distance > distance and self.right_distance > distance: 
+            if self.left_distance > self.right_distance:
+                self.robot_controller.stop()
+                self.robot_controller.set_move_cmd(0, 1)
+            elif self.left_distance < self.right_distance:
+                self.robot_controller.stop()
+                self.robot_controller.set_move_cmd(0, -1)#
+            self.robot_controller.publish()
+        #case3: if there is no distance around left or right
+        elif self.front_distance > distance and self.left_distance < distance and self.right_distance < distance:
+            self.robot_controller.stop()
+            self.robot_controller.set_move_cmd(0.35, 0)#
+            self.robot_controller.publish()
+        #case4: if there is no distance on the right
+        elif self.front_distance > distance and self.left_distance > distance and self.right_distance < distance:
+            self.robot_controller.stop()
+            self.robot_controller.set_move_cmd(0.3, 1)
+            self.robot_controller.publish()
+        #case5: if there is no distance on the left
+        elif self.front_distance > distance and self.left_distance < distance and self.right_distance > distance:
+            self.robot_controller.stop()
+            self.robot_controller.set_move_cmd(0.3, -1)
+            self.robot_controller.publish()
+        #case6: if there is no distance on the left and front
+        elif self.front_distance < distance and self.left_distance < distance and self.right_distance > distance:
+            self.robot_controller.stop()
+            self.robot_controller.set_move_cmd(0, -1)
+            self.robot_controller.publish()
+        #case7: if there is no distance on the right and front
+        elif self.front_distance < distance and self.left_distance > distance and self.right_distance < distance:
+            self.robot_controller.stop()
+            self.robot_controller.set_move_cmd(0, 1)
+            self.robot_controller.publish()
+        #case8: if there is no distance anywhere
+        elif self.front_distance < distance and self.left_distance < distance and self.right_distance < distance:
+            if self.left_distance > self.right_distance:
+                self.robot_controller.stop()
+                self.robot_controller.set_move_cmd(0, 2)
+                self.robot_controller.publish()
+            elif self.left_distance < self.right_distance:
+                self.robot_controller.stop()
+                self.robot_controller.set_move_cmd(0, -2)
+                self.robot_controller.publish() 
 
     def rotate(self, degree, speed):
         time.sleep(1)
@@ -133,7 +224,7 @@ class colour_search(object):
                             print("SEARCH COMPLETE: The robot is now facing the target pillar.")
                             self.find_target = True
                     else: 
-                        self.move_rate = 'slow'
+                        self.move_rate = 'fast'
                 elif self.find_target == True:
                     self.robot_controller.stop()
                     break
@@ -142,7 +233,7 @@ class colour_search(object):
                     
                 if self.find_target == False:    
                     if self.move_rate == 'fast':
-                        self.robot_controller.set_move_cmd(0.0, self.turn_vel_fast)
+                        self.move_around(0.2)
                     elif self.move_rate == 'slow':
                         self.robot_controller.set_move_cmd(0.0, self.turn_vel_slow)
                     elif self.move_rate == 'stop':
