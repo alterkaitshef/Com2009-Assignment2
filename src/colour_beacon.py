@@ -206,12 +206,12 @@ class colour_search(object):
 
 
     def rotate(self, degree, speed):
-        time.sleep(1)
+        rospy.sleep(1)
         time_cal = math.radians(degree) / speed
         self.robot_controller.set_move_cmd(0.0, speed)    
         self.robot_controller.publish()
         time_cal = abs(time_cal)
-        time.sleep(time_cal)
+        rospy.sleep(time_cal)
         self.robot_controller.stop()
 
     def main(self):
