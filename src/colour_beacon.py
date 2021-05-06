@@ -42,7 +42,7 @@ class colour_search(object):
         rospy.on_shutdown(self.shutdown_ops)
         self.rate = rospy.Rate(5)
         self.m00 = 0
-        self.m00_min = 10000
+        self.m00_min = 1000000
         self.turn = False
         self.color_name = ""
         self.lower_bound = []
@@ -149,10 +149,7 @@ class colour_search(object):
     
     def move_around(self, distance):
         if self.front_distance > distance and self.left_distance > distance and self.right_distance > distance:
-            if self.left_distance > self.right_distance:
-                self.robot_controller.set_move_cmd(0.35, 0.8)
-            elif self.left_distance < self.right_distance:
-                self.robot_controller.set_move_cmd(0.35, -0.8)
+            self.robot_controller.set_move_cmd(0.2, 0)
             self.robot_controller.publish()
         #case2: if there is no distance in front
         elif self.front_distance < distance and self.left_distance > distance and self.right_distance > distance: 
@@ -166,7 +163,7 @@ class colour_search(object):
         #case3: if there is no distance around left or right
         elif self.front_distance > distance and self.left_distance < distance and self.right_distance < distance:
             self.robot_controller.stop()
-            self.robot_controller.set_move_cmd(0.35, 0)#
+            self.robot_controller.set_move_cmd(0.2, 0)#
             self.robot_controller.publish()
         #case4: if there is no distance on the right
         elif self.front_distance > distance and self.left_distance > distance and self.right_distance < distance:
@@ -199,6 +196,15 @@ class colour_search(object):
                 self.robot_controller.set_move_cmd(0, -2)
                 self.robot_controller.publish() 
 
+    def beacon(self, distance):
+        if self.front_distance > distance:
+            self.robot_controller.stop()
+            self.robot_controller.set_move_cmd(0.2, 0)
+        else: 
+            self.robot_controller.stop()
+            print("there")
+
+
     def rotate(self, degree, speed):
         time.sleep(1)
         time_cal = math.radians(degree) / speed
@@ -219,30 +225,41 @@ class colour_search(object):
                 if self.m00 > self.m00_min and self.find_target == False:
                     # blob detected
                     if self.cy >= 560-100 and self.cy <= 560+100:
+                        #amount = self.cy - 560
                         if self.move_rate == 'slow':
-                            self.move_rate = 'stop'
-                            print("SEARCH COMPLETE: The robot is now facing the target pillar.")
+                            print("BEACON DETECTED: Beaconing initiated.")
+                            self.move_rate = 'stop'  
                             self.find_target = True
+                    #elif self.cy >= 560:
+                        #self.move_rate = 'turn right'
+                    #elif self.cy < 560:
+                        #self.move_rate = 'turn left'
                     else: 
-                        self.move_rate = 'fast'
+                        self.move_rate = 'slow'
                 elif self.find_target == True:
-                    self.robot_controller.stop()
-                    break
+                    print("hi")
+                    self.move_rate = 'beacon'
                 else:
                     self.move_rate = 'fast'
-                    
-                if self.find_target == False:    
-                    if self.move_rate == 'fast':
-                        self.move_around(0.2)
-                    elif self.move_rate == 'slow':
-                        self.robot_controller.set_move_cmd(0.0, self.turn_vel_slow)
-                    elif self.move_rate == 'stop':
-                        self.robot_controller.set_move_cmd(0.0, 0.0)
-                    else:
-                        self.robot_controller.set_move_cmd(0.0, self.turn_vel_slow)
-                    
-                    self.robot_controller.publish()
-                    self.rate.sleep()
+                      
+                if self.move_rate == 'fast':
+                    self.move_around(0.5)
+                elif self.move_rate == 'slow':
+                    self.robot_controller.set_move_cmd(0.0, self.turn_vel_slow)
+                elif self.move_rate == 'turn right':
+                    self.robot_controller.set_move_cmd(0.0, -0.2)
+                elif self.move_rate == 'turn left':
+                    self.robot_controller.set_move_cmd(0.0, 0.2)
+                elif self.move_rate == 'stop':
+                    self.robot_controller.set_move_cmd(0.0, 0.0)
+                elif self.move_rate == 'beacon':
+                    print("sdsdsd")
+                    self.beacon(0.2)
+                else:
+                    self.robot_controller.set_move_cmd(0.0, self.turn_vel_slow)
+                
+                self.robot_controller.publish()
+                self.rate.sleep()
             
 if __name__ == '__main__':
     search_ob = colour_search()
