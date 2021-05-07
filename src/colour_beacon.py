@@ -199,20 +199,21 @@ class colour_search(object):
 
     def beacon(self, distance):
         if self.cy >= 560-100 and self.cy <= 560+100:
-            print("BEACON DETECTED: Beaconing initiated.")
-            self.robot_controller.set_move_cmd(0, 0.2)
-            print("turning")
-            rospy.sleep(0.5)
-            self.move_around(0.2)
-            print("moving around")
-            rospy.sleep(2)
-            self.robot_controller.publish()
-            if self.front_distance <= 0.3 or self.right_distance <= 0.35 or self.left_distance <= 0.35 :
+            #self.robot_controller.set_move_cmd(0, 0.2)
+            #print("turning")
+            #rospy.sleep(0.5)
+            #self.move_around(0.2)
+            #print("moving around")
+            #rospy.sleep(2)
+            #self.robot_controller.publish()
+            if self.front_distance <= 0.3 or self.right_distance <= 0.3 or self.left_distance <= 0.3:
                 print("BEACONING COMPLETE: The robot has now stopped.")
-                self.robot_controller.set_move_cmd(0, 0)
-                self.find_target = True
+                self.robot_controller.stop()
                 self.move_rate = "stop"
-                sys.exit()
+            else:
+                self.robot_controller.set_move_cmd(0.2, 0)
+                self.robot_controller.publish()
+
         elif self.cy <= 560-100:
             self.robot_controller.set_move_cmd(0.0, 0.1)
             self.robot_controller.publish()
@@ -253,19 +254,9 @@ class colour_search(object):
                     if self.cy >= 560-100 and self.cy <= 560+100:
                         #amount = self.cy - 560
                         if self.move_rate == 'slow':
-                            # print("BEACON DETECTED: Beaconing initiated.")
                             self.move_rate = 'stop'  
                             self.find_target = True
-                            # if self.front_distance <= 0.4 or self.right_distance <= 0.35 or self.left_distance <= 0.35 :
-                            #     print("SEARCH COMPLETE: The robot has now stopped.")
-                            #     self.robot_controller.set_move_cmd(0, 0)
-                            #     self.find_target = True
-                            #     self.move_rate = "stop"
-                            #     sys.exit()
-                    #elif self.cy >= 560:
-                        #self.move_rate = 'turn right'
-                    #elif self.cy < 560:
-                        #self.move_rate = 'turn left'
+                            print("BEACON DETECTED: Beaconing initiated.")
                     else: 
                         self.move_rate = 'slow'
                 elif self.find_target == True:
@@ -282,7 +273,7 @@ class colour_search(object):
                 elif self.move_rate == 'turn left':
                     self.robot_controller.set_move_cmd(0.0, 0.2)
                 elif self.move_rate == 'stop':
-                    self.robot_controller.set_move_cmd(0.0, 0.0)
+                    self.robot_controller.stop()
                 elif self.move_rate == 'beacon':
                     self.beacon(0.2)
                 else:
