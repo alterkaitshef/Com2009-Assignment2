@@ -149,7 +149,7 @@ class colour_search(object):
     
     def move_around(self, distance):
         if self.front_distance > distance and self.left_distance > distance and self.right_distance > distance:
-            self.robot_controller.set_move_cmd(0.2, 0)
+            self.robot_controller.set_move_cmd(0.25, 0)
             self.robot_controller.publish()
         #case2: if there is no distance in front
         elif self.front_distance < distance and self.left_distance > distance and self.right_distance > distance: 
@@ -197,12 +197,22 @@ class colour_search(object):
                 self.robot_controller.publish() 
 
     def beacon(self, distance):
-        if self.front_distance > distance:
+        if self.cy >= 560-100 and self.cy <= 560+100:
+            print("BEACON DETECTED: Beaconing initiated.")
+            self.robot_controller.set_move_cmd(0.2, 0)
+            self.robot_controller.publish()
+        elif self.cy <= 560-100:
+            self.robot_controller.set_move_cmd(0.0, 0.2)
+            self.robot_controller.publish()
+        elif self.cy > 560+100:
+            self.robot_controller.set_move_cmd(0.0, -0.2)
+            self.robot_controller.publish()
+        '''if self.front_distance > distance:
             self.robot_controller.stop()
             self.robot_controller.set_move_cmd(0.2, 0)
-        else: 
+        elif self.front_distance <= distance:
             self.robot_controller.stop()
-            print("there")
+            print("BEACONING COMPLETE: The robot has now stopped.")'''
 
 
     def rotate(self, degree, speed):
