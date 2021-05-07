@@ -125,11 +125,6 @@ class colour_search(object):
         cv2.imshow('cropped image', crop_img)
         cv2.waitKey(1)
 
-    def detect_line_colour(self):
-        y_error = cy - (width / 2)
-        if y_error >= 560-100 and y_error <= 560+100:
-            print("line on the floor")
-        
 
     def get_init_color(self):
         color_threshold = {
@@ -212,8 +207,9 @@ class colour_search(object):
             print("moving around")
             rospy.sleep(2)
             self.robot_controller.publish()
-            if self.front_distance < 0.2 or self.right_distance < 0.2 or self.left_distance < 0.2 :
-                print("SEARCH COMPLETE: The robot is now facing the target pillar.")
+            if self.front_distance <= 0.55 or self.right_distance <= 0.35 or self.left_distance <= 0.35 :
+                print("SEARCH COMPLETE: The robot has now stopped.")
+                self.robot_controller.set_move_cmd(0, 0)
                 self.find_target = True
                 self.move_rate = "stop"
                 sys.exit()
@@ -248,7 +244,7 @@ class colour_search(object):
                 self.get_init_color()
                 self.rotate(100, -0.2)
                 self.turn = True
-                self.detect_line_colour
+
             else:
                 if self.m00 > self.m00_min and self.find_target == False:
                     
@@ -256,9 +252,15 @@ class colour_search(object):
                     if self.cy >= 560-100 and self.cy <= 560+100:
                         #amount = self.cy - 560
                         if self.move_rate == 'slow':
-                            print("BEACON DETECTED: Beaconing initiated.")
+                            # print("BEACON DETECTED: Beaconing initiated.")
                             self.move_rate = 'stop'  
                             self.find_target = True
+                            # if self.front_distance <= 0.4 or self.right_distance <= 0.35 or self.left_distance <= 0.35 :
+                            #     print("SEARCH COMPLETE: The robot has now stopped.")
+                            #     self.robot_controller.set_move_cmd(0, 0)
+                            #     self.find_target = True
+                            #     self.move_rate = "stop"
+                            #     sys.exit()
                     #elif self.cy >= 560:
                         #self.move_rate = 'turn right'
                     #elif self.cy < 560:
