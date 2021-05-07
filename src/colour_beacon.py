@@ -82,7 +82,6 @@ class colour_search(object):
         self.right_distance = right_side_arc.min()
         self.right_angle = right_arc_angle[np.argmin(right_side_arc)]
 
-
         #left detection
         left_arc = scan_data.ranges[16:46]
         left_side_arc = np.array(left_arc[::1])
@@ -126,6 +125,12 @@ class colour_search(object):
         cv2.imshow('cropped image', crop_img)
         cv2.waitKey(1)
 
+    def detect_line_colour(self):
+        y_error = cy - (width / 2)
+        if y_error >= 560-100 and y_error <= 560+100:
+            print("line on the floor")
+        
+
     def get_init_color(self):
         color_threshold = {
             "Red":    ([0, 185, 100], [10, 255, 255]),
@@ -147,6 +152,7 @@ class colour_search(object):
                 print("SEARCH INITIATED: The target colour is {}".format (self.color_name))
                 break
     
+    #robot should look left and right as it moves forwards
     def move_around(self, distance):
         if self.front_distance > distance and self.left_distance > distance and self.right_distance > distance:
             self.robot_controller.set_move_cmd(0.25, 0)
@@ -199,8 +205,19 @@ class colour_search(object):
     def beacon(self, distance):
         if self.cy >= 560-100 and self.cy <= 560+100:
             print("BEACON DETECTED: Beaconing initiated.")
-            self.robot_controller.set_move_cmd(0.2, 0)
+            self.robot_controller.set_move_cmd(0, 0.2)
+            print("turning")
+            rospy.sleep(0.5)
+            self.move_around(0.2)
+            print("moving around")
+            rospy.sleep(2)
             self.robot_controller.publish()
+            if self.front_distance < 0.2 or self.right_distance < 0.2 or self.left_distance < 0.2 :
+                print("SEARCH COMPLETE: The robot is now facing the target pillar.")
+                self.find_target = True
+                self.move_rate = "stop"
+                sys.exit()
+                
         elif self.cy <= 560-100:
             self.robot_controller.set_move_cmd(0.0, 0.2)
             self.robot_controller.publish()
@@ -231,8 +248,10 @@ class colour_search(object):
                 self.get_init_color()
                 self.rotate(100, -0.2)
                 self.turn = True
+                self.detect_line_colour
             else:
                 if self.m00 > self.m00_min and self.find_target == False:
+                    
                     # blob detected
                     if self.cy >= 560-100 and self.cy <= 560+100:
                         #amount = self.cy - 560
