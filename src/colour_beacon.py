@@ -13,7 +13,7 @@ from sensor_msgs.msg import Image
 # Import some other modules from within this package
 from move_tb3 import MoveTB3
 from tb3_odometry import TB3Odometry
-from geometry_msgs import Twist
+from geometry_msgs.msg import Twist
 import math
 from math import sqrt, pow, pi
 import numpy as np
@@ -172,11 +172,11 @@ class colour_search(object):
     #robot should look left and right as it moves forwards
     def move_around(self, distance):
         if self.front_distance > distance and self.left_distance > distance and self.right_distance > distance:
-            self.robot_controller.set_move_cmd(0.25, 0.2)
+            self.robot_controller.set_move_cmd(0.25, 0.26)
             self.robot_controller.publish()
             print("look left")
             self.robot_controller.stop()
-            self.robot_controller.set_move_cmd(0.25, -0.2)
+            self.robot_controller.set_move_cmd(0.25, -0.25)
             print("look right")
             self.robot_controller.publish()
         #case2: if there is no distance in front
@@ -235,18 +235,20 @@ class colour_search(object):
             #self.robot_controller.publish()
             color_forwards = self.get_color()
             try_left = False
-            if self.front_distance <= 0.2:
-                if try_left:
-                    self.robot_controller.set_move_cmd(-0.3, 0.1)
-                    self.robot_controller.publish()
-                    try_left = False
-                else:
-                    self.robot_controller.set_move_cmd(-0.3, -0.1)
-                    self.robot_controller.publish()
-                    try_left = True
+            if self.front_distance <= 0.24 or self.right_distance <= 0.24 or self.left_distance <= 0.24:
+                # if try_left:
+                #     self.robot_controller.set_move_cmd(-0.3, 0.1)
+                #     self.robot_controller.publish()
+                #     try_left = False
+                # else:
+                #     self.robot_controller.set_move_cmd(-0.3, -0.1)
+                #     self.robot_controller.publish()
+                #     try_left = True
+                self.robot_controller.set_move_cmd(-0.3, 0)
+                self.robot_controller.publish()
                 print("Too close to wall!!")
 
-            elif (self.front_distance <= 0.3 or self.right_distance <= 0.2 or self.left_distance <= 0.2) and color_forwards == self.color_name:
+            elif (self.front_distance <= 0.3 or self.right_distance <= 0.3 or self.left_distance <= 0.3) and color_forwards == self.color_name:
                 print("BEACONING COMPLETE: The robot has now stopped.")
                 self.robot_controller.stop()
                 self.move_rate = "stop"
