@@ -172,11 +172,11 @@ class colour_search(object):
     #robot should look left and right as it moves forwards
     def move_around(self, distance):
         if self.front_distance > distance and self.left_distance > distance and self.right_distance > distance:
-            self.robot_controller.set_move_cmd(0.25, 0.26)
+            self.robot_controller.set_move_cmd(0.23, 0.75)
             self.robot_controller.publish()
             print("look left")
             self.robot_controller.stop()
-            self.robot_controller.set_move_cmd(0.25, -0.25)
+            self.robot_controller.set_move_cmd(0.23, -0.75)
             print("look right")
             self.robot_controller.publish()
         #case2: if there is no distance in front

@@ -105,10 +105,12 @@ class ActionServer(object):
         while time.time() < go_time:
             #case1: if front there is distance all around
             if self.front_distance > goal.approach_distance and self.left_distance > goal.approach_distance and self.right_distance > goal.approach_distance:
-                if self.left_distance > self.right_distance:
-                    self.robot_controller.set_move_cmd(0.35, 0.8)
-                elif self.left_distance < self.right_distance:
-                    self.robot_controller.set_move_cmd(0.35, -0.8)
+                self.robot_controller.set_move_cmd(0.23, 0.75)
+                self.robot_controller.publish()
+                print("look left")
+                self.robot_controller.stop()
+                self.robot_controller.set_move_cmd(0.23, -0.75)
+                print("look right")
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
@@ -128,7 +130,7 @@ class ActionServer(object):
             #case3: if there is no distance around left or right
             elif self.front_distance > goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance < goal.approach_distance:
                 self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0.35, 0)#
+                self.robot_controller.set_move_cmd(0.25, 0)#
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
@@ -138,6 +140,9 @@ class ActionServer(object):
                 self.robot_controller.stop()
                 self.robot_controller.set_move_cmd(0.3, 1)
                 self.robot_controller.publish()
+                self.robot_controller.stop()
+                self.robot_controller.set_move_cmd(0.3, -0.25)
+                self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)
             
@@ -146,17 +151,20 @@ class ActionServer(object):
                 self.robot_controller.stop()
                 self.robot_controller.set_move_cmd(0.3, -1)
                 self.robot_controller.publish()
+                self.robot_controller.stop()
+                self.robot_controller.set_move_cmd(0.3, 0.25)
+                self.robot_controller.publish()
            
            #case6: if there is no distance on the left and front
             elif self.front_distance < goal.approach_distance and self.left_distance < goal.approach_distance and self.right_distance > goal.approach_distance:
                 self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0, -1)
+                self.robot_controller.set_move_cmd(0, -0.25)
                 self.robot_controller.publish()
             
             #case7: if there is no distance on the right and front
             elif self.front_distance < goal.approach_distance and self.left_distance > goal.approach_distance and self.right_distance < goal.approach_distance:
                 self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0, 1)
+                self.robot_controller.set_move_cmd(0, 0.5)
                 self.robot_controller.publish()
            
            #case8: if there is no distance anywhere
