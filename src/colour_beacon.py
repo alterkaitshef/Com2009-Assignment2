@@ -13,6 +13,7 @@ from sensor_msgs.msg import Image
 # Import some other modules from within this package
 from move_tb3 import MoveTB3
 from tb3_odometry import TB3Odometry
+from geometry_msgs import Twist
 import math
 from math import sqrt, pow, pi
 import numpy as np
@@ -146,11 +147,37 @@ class colour_search(object):
                 self.upper_bound = upper_bound
                 print("SEARCH INITIATED: The target colour is {}".format (self.color_name))
                 break
+
+    def get_color(self):
+        color_threshold = {
+            "Red":    ([0, 185, 100], [10, 255, 255]),
+            "Blue":   ([115, 224, 100],   [130, 255, 255]),
+            "Green":   ([25, 150, 100], [70, 255, 255]),
+            "Turquoise":   ([75, 150, 100], [100, 255, 255]),
+            "Yellow": ([28, 180, 100], [32, 255, 255]),
+            "Purple":   ([145, 185, 100], [150, 250, 255])
+        }
+
+        for color_name, (lower, upper) in color_threshold.items():
+            lower_bound = np.array(lower)
+            upper_bound = np.array(upper)
+            mask = cv2.inRange(self.hsv_img, lower_bound, upper_bound)
+            if mask.any():
+                print("The  colour in front is {}".format (color_name))
+                return color_name
+                break
+
+
     
     #robot should look left and right as it moves forwards
     def move_around(self, distance):
         if self.front_distance > distance and self.left_distance > distance and self.right_distance > distance:
-            self.robot_controller.set_move_cmd(0.25, 0)
+            self.robot_controller.set_move_cmd(0.25, 0.2)
+            self.robot_controller.publish()
+            print("look left")
+            self.robot_controller.stop()
+            self.robot_controller.set_move_cmd(0.25, -0.2)
+            print("look right")
             self.robot_controller.publish()
         #case2: if there is no distance in front
         elif self.front_distance < distance and self.left_distance > distance and self.right_distance > distance: 
@@ -206,10 +233,24 @@ class colour_search(object):
             #print("moving around")
             #rospy.sleep(2)
             #self.robot_controller.publish()
-            if self.front_distance <= 0.3 or self.right_distance <= 0.3 or self.left_distance <= 0.3:
+            color_forwards = self.get_color()
+            try_left = False
+            if self.front_distance <= 0.2:
+                if try_left:
+                    self.robot_controller.set_move_cmd(-0.3, 0.1)
+                    self.robot_controller.publish()
+                    try_left = False
+                else:
+                    self.robot_controller.set_move_cmd(-0.3, -0.1)
+                    self.robot_controller.publish()
+                    try_left = True
+                print("Too close to wall!!")
+
+            elif (self.front_distance <= 0.3 or self.right_distance <= 0.2 or self.left_distance <= 0.2) and color_forwards == self.color_name:
                 print("BEACONING COMPLETE: The robot has now stopped.")
                 self.robot_controller.stop()
                 self.move_rate = "stop"
+                self.find_target = True
             else:
                 self.robot_controller.set_move_cmd(0.2, 0)
                 self.robot_controller.publish()
