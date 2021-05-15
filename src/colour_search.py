@@ -88,7 +88,7 @@ class colour_search(object):
             "Green":   ([25, 150, 100], [70, 255, 255]),
             "Turquoise":   ([75, 150, 100], [100, 255, 255]),
             "Yellow": ([28, 180, 100], [32, 255, 255]),
-            "Purple":   ([145, 185, 100], [150, 250, 255])
+            "Purple":   ([145, 190, 100], [155, 255, 255])
         }
 
         for color_name, (lower, upper) in color_threshold.items():
@@ -120,11 +120,11 @@ class colour_search(object):
     def main(self):
         while not self.ctrl_c:
             if self.turn == False:
-                self.rotate(100, 0.2)
+                self.rotate(100, 0.6)
                 self.get_init_color()
-                self.rotate(100, -0.2)
+                self.rotate(100, -0.6)
                 self.go_foward()
-                self.rotate(110, 0.2)
+                self.rotate(110, 0.6)
                 self.turn = True
             else:
                 if self.m00 > self.m00_min and self.find_target == False:
