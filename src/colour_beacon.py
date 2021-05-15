@@ -21,11 +21,10 @@ from sensor_msgs.msg import LaserScan
 from math import sqrt, degrees
 import sys
 
-class colour_search(object):
+class colour_beacon(object):
 
     def __init__(self):
-        rospy.init_node('turn_and_face')
-        self.base_image_path = '/home/student/myrosdata/week6_images'
+        rospy.init_node('color_beacon')
         self.camera_subscriber = rospy.Subscriber("/camera/rgb/image_raw",
             Image, self.camera_callback)
         self.cvbridge_interface = CvBridge()
@@ -149,9 +148,9 @@ class colour_search(object):
             "Red":    ([0, 185, 100], [10, 255, 255]),
             "Blue":   ([115, 224, 100],   [130, 255, 255]),
             "Green":   ([25, 150, 100], [70, 255, 255]),
-            "Turquoise":   ([75, 200, 100], [90, 255, 255]),
+            "Turquoise":   ([75, 150, 100], [100, 255, 255]),
             "Yellow": ([28, 180, 100], [32, 255, 255]),
-            "Purple":   ([145, 185, 100], [150, 250, 255])
+            "Purple":   ([145, 190, 100], [155, 255, 255])
         }
 
         for color_name, (lower, upper) in color_threshold.items():
@@ -162,7 +161,7 @@ class colour_search(object):
                 self.color_name = color_name
                 self.lower_bound = lower_bound
                 self.upper_bound = upper_bound
-                print("SEARCH INITIATED: The target colour is {}".format (self.color_name))
+                print("SEARCH INITIATED: The target beacon colour is {}.".format (self.color_name))
                 break
     
     #robot should look left and right as it moves forwards
@@ -336,8 +335,8 @@ class colour_search(object):
                 self.rate.sleep()
             
 if __name__ == '__main__':
-    search_ob = colour_search()
+    colour_beacon = colour_beacon()
     try:
-        search_ob.main()
+        colour_beacon.main()
     except rospy.ROSInterruptException:
         pass

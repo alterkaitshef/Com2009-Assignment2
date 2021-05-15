@@ -67,7 +67,7 @@ class maze_nav(object):
         rospy.sleep(3)
     
     def turn_right90(self):
-        self.robot_controller.set_move_cmd(0.0, -0.62)
+        self.robot_controller.set_move_cmd(0.0, -0.6)
         self.robot_controller.publish()
         rospy.sleep(2.5)
         while self.left90 > 0.359:
@@ -77,7 +77,7 @@ class maze_nav(object):
         rospy.sleep(0.5)
     
     def turn_left90(self):
-        self.robot_controller.set_move_cmd(0.0, 0.62)
+        self.robot_controller.set_move_cmd(0.0, 0.6)
         self.robot_controller.publish()
         rospy.sleep(2.5)
         while self.right90 > 0.359:
