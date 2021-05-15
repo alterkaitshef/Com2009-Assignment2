@@ -22,7 +22,6 @@ class colour_search(object):
 
     def __init__(self):
         rospy.init_node('turn_and_face')
-        self.base_image_path = '/home/student/myrosdata/week6_images'
         self.camera_subscriber = rospy.Subscriber("/camera/rgb/image_raw",
             Image, self.camera_callback)
         self.cvbridge_interface = CvBridge()
@@ -88,7 +87,7 @@ class colour_search(object):
             "Green":   ([25, 150, 100], [70, 255, 255]),
             "Turquoise":   ([75, 150, 100], [100, 255, 255]),
             "Yellow": ([28, 180, 100], [32, 255, 255]),
-            "Purple":   ([145, 185, 100], [150, 250, 255])
+            "Purple":   ([145, 190, 100], [155, 255, 255])
         }
 
         for color_name, (lower, upper) in color_threshold.items():
@@ -99,7 +98,7 @@ class colour_search(object):
                 self.color_name = color_name
                 self.lower_bound = lower_bound
                 self.upper_bound = upper_bound
-                print("SEARCH INITIATED: The target colour is {}".format (self.color_name))
+                print("SEARCH INITIATED: The target colour is {}.".format (self.color_name))
                 break
     
     def go_foward(self):
@@ -120,11 +119,11 @@ class colour_search(object):
     def main(self):
         while not self.ctrl_c:
             if self.turn == False:
-                self.rotate(100, 0.2)
+                self.rotate(100, 0.6)
                 self.get_init_color()
-                self.rotate(100, -0.2)
+                self.rotate(100, -0.6)
                 self.go_foward()
-                self.rotate(110, 0.2)
+                self.rotate(110, 0.6)
                 self.turn = True
             else:
                 if self.m00 > self.m00_min and self.find_target == False:

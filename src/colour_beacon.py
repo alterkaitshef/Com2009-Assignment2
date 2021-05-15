@@ -13,20 +13,18 @@ from sensor_msgs.msg import Image
 # Import some other modules from within this package
 from move_tb3 import MoveTB3
 from tb3_odometry import TB3Odometry
-from geometry_msgs.msg import Twist
 import math
 from math import sqrt, pow, pi
 import numpy as np
 import time
 from sensor_msgs.msg import LaserScan
-from math import sqrt
+from math import sqrt, degrees
 import sys
 
-class colour_search(object):
+class colour_beacon(object):
 
     def __init__(self):
-        rospy.init_node('turn_and_face')
-        self.base_image_path = '/home/student/myrosdata/week6_images'
+        rospy.init_node('color_beacon')
         self.camera_subscriber = rospy.Subscriber("/camera/rgb/image_raw",
             Image, self.camera_callback)
         self.cvbridge_interface = CvBridge()
@@ -41,7 +39,7 @@ class colour_search(object):
         self.move_rate = '' # fast, slow or stop
         self.ctrl_c = False
         rospy.on_shutdown(self.shutdown_ops)
-        self.rate = rospy.Rate(5)
+        self.rate = rospy.Rate(100)
         self.m00 = 0
         self.m00_min = 1000000
         self.turn = False
@@ -51,6 +49,8 @@ class colour_search(object):
         self.mask = np.zeros((1080,1920,1), np.uint8)
         self.hsv_img = np.zeros((1080,1920,3), np.uint8)
         self.find_target = False
+        self.stop_at_target = False
+        self.raw_data = np.array(tuple())
 
         # define a Twist instance, which can be used to set robot velocities
         self.front_distance = 0.0
@@ -61,6 +61,10 @@ class colour_search(object):
         self.left_angle = 0.0
         self.back_distance = 0.0
         self.back_angle = 0.0
+        self.init_x = 0.0
+        self.init_y = 0.0
+        self.small_front_distance = 0
+        self.small_front_angle = 0
     
     def scan_callback_function(self, scan_data):
 
@@ -73,24 +77,36 @@ class colour_search(object):
         # find the miniumum object distance within the frontal laserscan arc:
         self.front_distance = front_arc.min()
         self.front_angle = front_arc_angle[np.argmin(front_arc)]
+
+        #small front 
+        small_front_left_arc = scan_data.ranges[0:6]
+        small_front_right_arc = scan_data.ranges[-5:]
+        small_front_arc = np.array(small_front_left_arc[::-1] + small_front_right_arc[::-1])
+        small_front_arc_angle = np.arange(-5, 6)
+
+        # find the miniumum object distance within the frontal laserscan arc:
+        self.small_front_distance = small_front_arc.min()
+        self.small_front_angle = small_front_arc_angle[np.argmin(small_front_arc)]
         
         #right detection
-        right_arc = scan_data.ranges[314:344]
+        right_arc = scan_data.ranges[315:351]
         right_side_arc = np.array(right_arc[::1])
-        right_arc_angle = np.arange(314,344)
+        right_arc_angle = np.arange(315,351)
 
         # find the miniumum object distance within the right laserscan arc:
         self.right_distance = right_side_arc.min()
         self.right_angle = right_arc_angle[np.argmin(right_side_arc)]
 
         #left detection
-        left_arc = scan_data.ranges[16:46]
+        left_arc = scan_data.ranges[17:53]
         left_side_arc = np.array(left_arc[::1])
-        left_arc_angle = np.arange(16,46)
+        left_arc_angle = np.arange(17,53)
 
         # find the miniumum object distance within the left laserscan arc:
         self.left_distance = left_side_arc.min()
         self.left_angle = left_arc_angle[np.argmin(left_side_arc)]
+
+        self.raw_data = np.array(scan_data.ranges)
 
     def shutdown_ops(self):
         self.robot_controller.stop()
@@ -136,7 +152,7 @@ class colour_search(object):
             "Green":   ([25, 150, 100], [70, 255, 255]),
             "Turquoise":   ([75, 150, 100], [100, 255, 255]),
             "Yellow": ([28, 180, 100], [32, 255, 255]),
-            "Purple":   ([145, 185, 100], [150, 250, 255])
+            "Purple":   ([145, 190, 100], [155, 255, 255])
         }
 
         for color_name, (lower, upper) in color_threshold.items():
@@ -148,39 +164,13 @@ class colour_search(object):
                 self.color_name = color_name
                 self.lower_bound = lower_bound
                 self.upper_bound = upper_bound
-                print("SEARCH INITIATED: The target colour is {}".format (self.color_name))
+                print("SEARCH INITIATED: The target beacon colour is {}.".format (self.color_name))
                 break
-
-    def get_color(self):
-        color_threshold = {
-            "Red":    ([0, 185, 100], [10, 255, 255]),
-            "Blue":   ([115, 224, 100],   [130, 255, 255]),
-            "Green":   ([25, 150, 100], [70, 255, 255]),
-            "Turquoise":   ([75, 150, 100], [100, 255, 255]),
-            "Yellow": ([28, 180, 100], [32, 255, 255]),
-            "Purple":   ([145, 185, 100], [150, 250, 255])
-        }
-
-        for color_name, (lower, upper) in color_threshold.items():
-            lower_bound = np.array(lower)
-            upper_bound = np.array(upper)
-            mask = cv2.inRange(self.hsv_img, lower_bound, upper_bound)
-            if mask.any():
-                print("The  colour in front is {}".format (color_name))
-                return color_name
-                break
-
-
     
     #robot should look left and right as it moves forwards
     def move_around(self, distance):
         if self.front_distance > distance and self.left_distance > distance and self.right_distance > distance:
-            self.robot_controller.set_move_cmd(0.23, 0.75)
-            self.robot_controller.publish()
-            print("look left")
-            self.robot_controller.stop()
-            self.robot_controller.set_move_cmd(0.23, -0.75)
-            print("look right")
+            self.robot_controller.set_move_cmd(0.25, 0)
             self.robot_controller.publish()
         #case2: if there is no distance in front
         elif self.front_distance < distance and self.left_distance > distance and self.right_distance > distance: 
@@ -227,54 +217,56 @@ class colour_search(object):
                 self.robot_controller.set_move_cmd(0, -2)
                 self.robot_controller.publish() 
 
-    def beacon(self, distance):
-        if self.cy >= 560-100 and self.cy <= 560+100:
-            #self.robot_controller.set_move_cmd(0, 0.2)
-            #print("turning")
-            #rospy.sleep(0.5)
-            #self.move_around(0.2)
-            #print("moving around")
-            #rospy.sleep(2)
-            #self.robot_controller.publish()
-            color_forwards = self.get_color()
-            try_left = False
-            if self.front_distance <= 0.24 or self.right_distance <= 0.24 or self.left_distance <= 0.24:
-                # if try_left:
-                #     self.robot_controller.set_move_cmd(-0.3, 0.1)
-                #     self.robot_controller.publish()
-                #     try_left = False
-                # else:
-                #     self.robot_controller.set_move_cmd(-0.3, -0.1)
-                #     self.robot_controller.publish()
-                #     try_left = True
-                self.robot_controller.set_move_cmd(-0.3, 0)
-                self.robot_controller.publish()
-                print("Too close to wall!!")
-
-            elif (self.front_distance <= 0.3 or self.right_distance <= 0.3 or self.left_distance <= 0.3) and color_forwards == self.color_name:
-                print("BEACONING COMPLETE: The robot has now stopped.")
-                self.robot_controller.stop()
-                self.move_rate = "stop"
-                self.find_target = True
+    def avoid_to_target(self, distance):
+        if self.front_distance > 0.4:
+            if self.right_distance > 0.4 and self.left_distance < 0.4:
+                self.robot_controller.set_move_cmd(linear=0.05, angular=-0.6)
+            elif self.right_distance < 0.4 and self.left_distance > 0.4:
+                self.robot_controller.set_move_cmd(linear=0.05, angular=0.6)
+            elif self.right_distance < 0.4 and self.left_distance < 0.4:
+                self.robot_controller.set_move_cmd(linear=0.05, angular=-0.6)
             else:
-                self.robot_controller.set_move_cmd(0.2, 0)
+                self.robot_controller.set_move_cmd(linear=0.12, angular=0)
+                if self.front_distance > 0.9:
+                    self.robot_controller.set_move_cmd(linear=0.26, angular=0)
+        else:
+            if self.right_distance > 0.4 and self.left_distance > 0.4:
+                self.robot_controller.set_move_cmd(linear=0.0, angular=-0.8)
+            elif self.right_distance > 0.4 and self.left_distance < 0.4:
+                self.robot_controller.set_move_cmd(linear=0.0, angular=-0.6)
+            elif self.right_distance < 0.4 and self.left_distance > 0.4:
+                self.robot_controller.set_move_cmd(linear=0.0, angular=0.6)
+            else:
+                self.robot_controller.set_move_cmd(linear=0.0, angular=-0.6)
+        self.robot_controller.publish()
+
+
+    def beacon(self, distance):
+        #print(self.stop_at_target)
+        if self.stop_at_target == False:
+            if self.cy >= 560-100 and self.cy <= 560+100:
+                if self.front_distance < distance:
+                    print("BEACONING COMPLETE: The robot has now stopped.")
+                    self.robot_controller.stop()
+                    self.stop_at_target = True
+                    
+                else:
+                    #self.robot_controller.set_move_cmd(0.2, 0)
+                    #self.robot_controller.publish()
+                    self.move_around(0.5)
+
+            elif 0 < self.cy and self.cy <= 560-100:
+                self.robot_controller.set_move_cmd(0.1, 0.1)
                 self.robot_controller.publish()
-
-        elif self.cy <= 560-100:
-            self.robot_controller.set_move_cmd(0.0, 0.1)
-            self.robot_controller.publish()
-            print("left")
-        elif self.cy > 560+100:
-            self.robot_controller.set_move_cmd(0.0, -0.1)
-            self.robot_controller.publish()
-            print("right")
-        '''if self.front_distance > distance:
-            self.robot_controller.stop()
-            self.robot_controller.set_move_cmd(0.2, 0)
-        elif self.front_distance <= distance:
-            self.robot_controller.stop()
-            print("BEACONING COMPLETE: The robot has now stopped.")'''
-
+                #print("left")
+            elif self.cy > 560+100:
+                self.robot_controller.set_move_cmd(0.1, -0.1)
+                self.robot_controller.publish()
+                #print("right")
+            else:
+                self.move_around(0.5)
+                #print("else")
+        else: self.robot_controller.stop()
 
     def rotate(self, degree, speed):
         rospy.sleep(1)
@@ -285,20 +277,29 @@ class colour_search(object):
         rospy.sleep(time_cal)
         self.robot_controller.stop()
 
+    def go_foward(self):
+        self.robot_controller.set_move_cmd(0.2, 0)    
+        self.robot_controller.publish()
+        rospy.sleep(1)
+        self.robot_controller.stop()
+
     def main(self):
         while not self.ctrl_c:
             if self.turn == False:
-                self.rotate(100, 0.2)
+                self.rotate(90, -0.6)
                 self.get_init_color()
-                self.rotate(100, -0.2)
+                self.rotate(90, 0.6)
+                self.robot_controller.stop()
+                rospy.sleep(1)
+                self.go_foward()
                 self.turn = True
+                self.init_x = self.robot_odom.posx
+                self.init_y = self.robot_odom.posy
 
             else:
                 if self.m00 > self.m00_min and self.find_target == False:
-                    
                     # blob detected
                     if self.cy >= 560-100 and self.cy <= 560+100:
-                        #amount = self.cy - 560
                         if self.move_rate == 'slow':
                             if int(self.cz) > 190 and int(self.cz) < 210:
                                 self.move_rate = 'stop'  
@@ -306,32 +307,40 @@ class colour_search(object):
                                 print("BEACON DETECTED: Beaconing initiated.")
                     else: 
                         self.move_rate = 'slow'
-                elif self.find_target == True:
+                elif self.find_target == True and self.stop_at_target == False:
                     self.move_rate = 'beacon'
+                elif self.stop_at_target == True:
+                    self.move_rate = 'done'
                 else:
                     self.move_rate = 'fast'
                       
                 if self.move_rate == 'fast':
                     self.move_around(0.5)
                 elif self.move_rate == 'slow':
-                    self.robot_controller.set_move_cmd(0.0, self.turn_vel_slow)
-                elif self.move_rate == 'turn right':
-                    self.robot_controller.set_move_cmd(0.0, -0.2)
-                elif self.move_rate == 'turn left':
-                    self.robot_controller.set_move_cmd(0.0, 0.2)
+                    if self.cy <= 560-100:
+                        self.robot_controller.set_move_cmd(0.1, 0.2)
+                        self.robot_controller.publish()
+                        #print("slow left")
+                    elif self.cy > 560+100:
+                        self.robot_controller.set_move_cmd(0.1, -0.2)
+                        self.robot_controller.publish()
+                        #print("slow right")
                 elif self.move_rate == 'stop':
                     self.robot_controller.stop()
                 elif self.move_rate == 'beacon':
-                    self.beacon(0.2)
-                else:
-                    self.robot_controller.set_move_cmd(0.0, self.turn_vel_slow)
+                    self.beacon(0.35)
+                elif self.move_rate == 'done':
+                    #self.robot_controller.set_move_cmd(0.1, 0)
+                    #self.robot_controller.publish()
+                    #rospy.sleep(2)
+                    break
                 
                 self.robot_controller.publish()
                 self.rate.sleep()
             
 if __name__ == '__main__':
-    search_ob = colour_search()
+    colour_beacon = colour_beacon()
     try:
-        search_ob.main()
+        colour_beacon.main()
     except rospy.ROSInterruptException:
         pass

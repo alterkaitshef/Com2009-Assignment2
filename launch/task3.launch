@@ -1,4 +1,4 @@
 <launch>
-    <node name="turn_and_face" pkg="team42" type="colour_beacon.py" output="screen">
+    <node name="color_beacon" pkg="team42" type="colour_beacon.py" output="screen">
     </node>
 </launch>
