@@ -119,10 +119,10 @@ class ActionServer(object):
             elif self.front_distance < goal.approach_distance and self.left_distance > goal.approach_distance and self.right_distance > goal.approach_distance: 
                 if self.left_distance > self.right_distance:
                     self.robot_controller.stop()
-                    self.robot_controller.set_move_cmd(0, 1)
+                    self.robot_controller.set_move_cmd(-0.1, 1)
                 elif self.left_distance < self.right_distance:
                     self.robot_controller.stop()
-                    self.robot_controller.set_move_cmd(0, -1)#
+                    self.robot_controller.set_move_cmd(-0.1, -1)#
                 self.robot_controller.publish()
                 self.feedback.current_distance_travelled = (math.sqrt((self.robot_odom.posx - self.x0)**2 + (self.robot_odom.posy- self.y0)**2))
                 self.actionserver.publish_feedback(self.feedback)

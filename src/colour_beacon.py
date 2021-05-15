@@ -104,7 +104,7 @@ class colour_search(object):
             print(e)
         
         height, width, channels = cv_img.shape
-        crop_width = width - 800
+        crop_width = width - 1000
         crop_height = 400
         crop_x = int((width/2) - (crop_width/2))
         crop_y = int((height/2) - (crop_height/2))
@@ -119,9 +119,11 @@ class colour_search(object):
         m = cv2.moments(self.mask)
         self.m00 = m['m00']
         self.cy = m['m10'] / (m['m00'] + 1e-5)
+        self.cz = m['m01'] / (m['m00'] + 1e-5)
 
         if self.m00 > self.m00_min:
-            cv2.circle(crop_img, (int(self.cy), 200), 10, (0, 0, 255), 2)
+            cv2.circle(crop_img, (int(self.cy), int(self.cz)), 10, (0, 0, 255), 2)
+            print(int(self.cz))
         
         cv2.imshow('cropped image', crop_img)
         cv2.waitKey(1)
@@ -141,6 +143,7 @@ class colour_search(object):
             lower_bound = np.array(lower)
             upper_bound = np.array(upper)
             mask = cv2.inRange(self.hsv_img, lower_bound, upper_bound)
+            
             if mask.any():
                 self.color_name = color_name
                 self.lower_bound = lower_bound
@@ -297,9 +300,10 @@ class colour_search(object):
                     if self.cy >= 560-100 and self.cy <= 560+100:
                         #amount = self.cy - 560
                         if self.move_rate == 'slow':
-                            self.move_rate = 'stop'  
-                            self.find_target = True
-                            print("BEACON DETECTED: Beaconing initiated.")
+                            if int(self.cz) > 190 and int(self.cz) < 210:
+                                self.move_rate = 'stop'  
+                                self.find_target = True
+                                print("BEACON DETECTED: Beaconing initiated.")
                     else: 
                         self.move_rate = 'slow'
                 elif self.find_target == True:
