@@ -53,6 +53,8 @@ class colour_beacon(object):
         self.raw_data = np.array(tuple())
 
         # define a Twist instance, which can be used to set robot velocities
+        self.all_distance = 0.0
+        self.all_angle = 0.0
         self.front_distance = 0.0
         self.front_angle = 0.0
         self.right_distance = 0.0
@@ -65,8 +67,21 @@ class colour_beacon(object):
         self.init_y = 0.0
         self.small_front_distance = 0
         self.small_front_angle = 0
+
+        color_forwards = ""
     
     def scan_callback_function(self, scan_data):
+
+
+        # all detection
+        all_left_arc = scan_data.ranges[0:91]
+        all_right_arc = scan_data.ranges[-90:]
+        all_arc = np.array(all_left_arc[::-1] + all_right_arc[::-1])
+        all_arc_angle = np.arange(-90, 91)
+
+        # find the miniumum object distance within the frontal laserscan arc:
+        self.all_distance = all_arc.min()
+        self.all_angle = all_arc_angle[np.argmin(all_arc)]
 
         # front detection
         front_left_arc = scan_data.ranges[0:16]
@@ -188,35 +203,44 @@ class colour_beacon(object):
     
     #robot should look left and right as it moves forwards
     def move_around(self, distance):
+        toggle_waddle = False
+        
         if self.front_distance > distance and self.left_distance > distance and self.right_distance > distance:
-            self.robot_controller.set_move_cmd(0.25, 0.4)
-            self.robot_controller.publish()
-            self.robot_controller.stop()
-            self.robot_controller.set_move_cmd(0.25, -0.4)
-            self.robot_controller.publish()
+            
+            if toggle_waddle:
+                self.robot_controller.set_move_cmd(0.25, 0.3)
+                self.robot_controller.publish()
+                self.robot_controller.stop()
+                self.robot_controller.set_move_cmd(0.25, 0.3)
+                self.robot_controller.publish()
+                toggle_waddle = False
+            else:
+                self.robot_controller.set_move_cmd(0.25, 0)
+                self.robot_controller.publish()
+                toggle_waddle = True
         #case2: if there is no distance in front
         elif self.front_distance < distance and self.left_distance > distance and self.right_distance > distance: 
             if self.left_distance > self.right_distance:
                 self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0, 0.4)
+                self.robot_controller.set_move_cmd(-0.2, 0.4)
             elif self.left_distance < self.right_distance:
                 self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0, -0.4)#
+                self.robot_controller.set_move_cmd(-0.2, -0.4)#
             self.robot_controller.publish()
         #case3: if there is no distance around left or right
         elif self.front_distance > distance and self.left_distance < distance and self.right_distance < distance:
             self.robot_controller.stop()
-            self.robot_controller.set_move_cmd(0.2, 0)#
+            self.robot_controller.set_move_cmd(0.25, 0)#
             self.robot_controller.publish()
         #case4: if there is no distance on the right
         elif self.front_distance > distance and self.left_distance > distance and self.right_distance < distance:
             self.robot_controller.stop()
-            self.robot_controller.set_move_cmd(0.3, 0.4)
+            self.robot_controller.set_move_cmd(0.25, 0.4)
             self.robot_controller.publish()
         #case5: if there is no distance on the left
         elif self.front_distance > distance and self.left_distance < distance and self.right_distance > distance:
             self.robot_controller.stop()
-            self.robot_controller.set_move_cmd(0.3, -0.4)
+            self.robot_controller.set_move_cmd(0.25, -0.4)
             self.robot_controller.publish()
         #case6: if there is no distance on the left and front
         elif self.front_distance < distance and self.left_distance < distance and self.right_distance > distance:
@@ -268,23 +292,21 @@ class colour_beacon(object):
         if self.stop_at_target == False:
             if self.cy >= 560-100 and self.cy <= 560+100:
                 color_forwards = self.get_color()
-                self.robot_controller.set_move_cmd(0.2, 0)
-                if self.front_distance <= 0.24 or self.right_distance <= 0.24 or self.left_distance <= 0.24:
+                # self.move_around(0.25)
+                self.robot_controller.set_move_cmd(0.15, 0)
+                if self.all_distance <= 0.24:
                     if self.right_distance <= 0.24:
-                        self.robot_controller.set_move_cmd(-0.3, 0.2)
-                        
-
-
-                        self.robot_controller.publish()
+                        self.robot_controller.set_move_cmd(-0.25, 0.1)
                         try_left = False
                     elif self.left_distance <= 0.24:
-                        self.robot_controller.set_move_cmd(-0.3, -0.2)
-                        self.robot_controller.publish()
+                        self.robot_controller.set_move_cmd(-0.25, -0.1)
                         try_left = True
-                    else:
-                        self.robot_controller.set_move_cmd(-0.3, 0)
-                        self.robot_controller.publish()
+                    elif self.front_distance <= 0.24:
+                        self.robot_controller.set_move_cmd(-0.2, 0)
+                    
                     self.robot_controller.publish()
+                    
+
                     print("Too close to wall!!")
 
                 elif (self.front_distance <= 0.3 or self.right_distance <= 0.3 or self.left_distance <= 0.3) and color_forwards == self.color_name:
@@ -341,6 +363,7 @@ class colour_beacon(object):
                 self.turn = True
                 self.init_x = self.robot_odom.posx
                 self.init_y = self.robot_odom.posy
+                color_forwards = self.get_color()
 
             else:
                 if self.m00 > self.m00_min and self.find_target == False:
