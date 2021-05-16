@@ -39,7 +39,7 @@ class colour_beacon(object):
         self.move_rate = '' # fast, slow or stop
         self.ctrl_c = False
         rospy.on_shutdown(self.shutdown_ops)
-        self.rate = rospy.Rate(100)
+        self.rate = rospy.Rate(5)
         self.m00 = 0
         self.m00_min = 1000000
         self.turn = False
@@ -120,7 +120,7 @@ class colour_beacon(object):
             print(e)
         
         height, width, channels = cv_img.shape
-        crop_width = width - 1000
+        crop_width = width - 800
         crop_height = 400
         crop_x = int((width/2) - (crop_width/2))
         crop_y = int((height/2) - (crop_height/2))
@@ -139,10 +139,10 @@ class colour_beacon(object):
 
         if self.m00 > self.m00_min:
             cv2.circle(crop_img, (int(self.cy), int(self.cz)), 10, (0, 0, 255), 2)
-            print(int(self.cz))
         
         cv2.imshow('cropped image', crop_img)
         cv2.waitKey(1)
+
 
 
     def get_init_color(self):
@@ -166,20 +166,42 @@ class colour_beacon(object):
                 self.upper_bound = upper_bound
                 print("SEARCH INITIATED: The target beacon colour is {}.".format (self.color_name))
                 break
+
+    def get_color(self):
+        color_threshold = {
+            "Red":    ([0, 185, 100], [10, 255, 255]),
+            "Blue":   ([115, 224, 100],   [130, 255, 255]),
+            "Green":   ([25, 150, 100], [70, 255, 255]),
+            "Turquoise":   ([75, 150, 100], [100, 255, 255]),
+            "Yellow": ([28, 180, 100], [32, 255, 255]),
+            "Purple":   ([145, 185, 100], [150, 250, 255])
+        }
+
+        for color_name, (lower, upper) in color_threshold.items():
+            lower_bound = np.array(lower)
+            upper_bound = np.array(upper)
+            mask = cv2.inRange(self.hsv_img, lower_bound, upper_bound)
+            if mask.any():
+                print("The  colour in front is {}".format (color_name))
+                return color_name
+                break
     
     #robot should look left and right as it moves forwards
     def move_around(self, distance):
         if self.front_distance > distance and self.left_distance > distance and self.right_distance > distance:
-            self.robot_controller.set_move_cmd(0.25, 0)
+            self.robot_controller.set_move_cmd(0.25, 0.4)
+            self.robot_controller.publish()
+            self.robot_controller.stop()
+            self.robot_controller.set_move_cmd(0.25, -0.4)
             self.robot_controller.publish()
         #case2: if there is no distance in front
         elif self.front_distance < distance and self.left_distance > distance and self.right_distance > distance: 
             if self.left_distance > self.right_distance:
                 self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0, 1)
+                self.robot_controller.set_move_cmd(0, 0.4)
             elif self.left_distance < self.right_distance:
                 self.robot_controller.stop()
-                self.robot_controller.set_move_cmd(0, -1)#
+                self.robot_controller.set_move_cmd(0, -0.4)#
             self.robot_controller.publish()
         #case3: if there is no distance around left or right
         elif self.front_distance > distance and self.left_distance < distance and self.right_distance < distance:
@@ -189,22 +211,22 @@ class colour_beacon(object):
         #case4: if there is no distance on the right
         elif self.front_distance > distance and self.left_distance > distance and self.right_distance < distance:
             self.robot_controller.stop()
-            self.robot_controller.set_move_cmd(0.3, 1)
+            self.robot_controller.set_move_cmd(0.3, 0.4)
             self.robot_controller.publish()
         #case5: if there is no distance on the left
         elif self.front_distance > distance and self.left_distance < distance and self.right_distance > distance:
             self.robot_controller.stop()
-            self.robot_controller.set_move_cmd(0.3, -1)
+            self.robot_controller.set_move_cmd(0.3, -0.4)
             self.robot_controller.publish()
         #case6: if there is no distance on the left and front
         elif self.front_distance < distance and self.left_distance < distance and self.right_distance > distance:
             self.robot_controller.stop()
-            self.robot_controller.set_move_cmd(0, -1)
+            self.robot_controller.set_move_cmd(0, -0.4)
             self.robot_controller.publish()
         #case7: if there is no distance on the right and front
         elif self.front_distance < distance and self.left_distance > distance and self.right_distance < distance:
             self.robot_controller.stop()
-            self.robot_controller.set_move_cmd(0, 1)
+            self.robot_controller.set_move_cmd(0, 0.4)
             self.robot_controller.publish()
         #case8: if there is no distance anywhere
         elif self.front_distance < distance and self.left_distance < distance and self.right_distance < distance:
@@ -245,15 +267,39 @@ class colour_beacon(object):
         #print(self.stop_at_target)
         if self.stop_at_target == False:
             if self.cy >= 560-100 and self.cy <= 560+100:
-                if self.front_distance < distance:
-                    print("BEACONING COMPLETE: The robot has now stopped.")
+                color_forwards = self.get_color()
+                self.robot_controller.set_move_cmd(0.2, 0)
+                if self.front_distance <= 0.24 or self.right_distance <= 0.24 or self.left_distance <= 0.24:
+                    if self.right_distance <= 0.24:
+                        self.robot_controller.set_move_cmd(-0.3, 0.2)
+                        
+
+
+                        self.robot_controller.publish()
+                        try_left = False
+                    elif self.left_distance <= 0.24:
+                        self.robot_controller.set_move_cmd(-0.3, -0.2)
+                        self.robot_controller.publish()
+                        try_left = True
+                    else:
+                        self.robot_controller.set_move_cmd(-0.3, 0)
+                        self.robot_controller.publish()
+                    self.robot_controller.publish()
+                    print("Too close to wall!!")
+
+                elif (self.front_distance <= 0.3 or self.right_distance <= 0.3 or self.left_distance <= 0.3) and color_forwards == self.color_name:
                     self.robot_controller.stop()
-                    self.stop_at_target = True
-                    
-                else:
-                    #self.robot_controller.set_move_cmd(0.2, 0)
-                    #self.robot_controller.publish()
-                    self.move_around(0.5)
+                    self.move_rate = "stop"
+                    self.find_target = True
+                    if self.front_distance < distance:
+                        print("BEACONING COMPLETE: The robot has now stopped.")
+                        self.robot_controller.stop()
+                        self.stop_at_target = True
+                        
+                    else:
+                        #self.robot_controller.set_move_cmd(0.2, 0)
+                        #self.robot_controller.publish()
+                        self.move_around(0.5)
 
             elif 0 < self.cy and self.cy <= 560-100:
                 self.robot_controller.set_move_cmd(0.1, 0.1)
@@ -301,7 +347,7 @@ class colour_beacon(object):
                     # blob detected
                     if self.cy >= 560-100 and self.cy <= 560+100:
                         if self.move_rate == 'slow':
-                            if int(self.cz) > 190 and int(self.cz) < 210:
+                            if int(self.cz) > 180 and int(self.cz) < 220:
                                 self.move_rate = 'stop'  
                                 self.find_target = True
                                 print("BEACON DETECTED: Beaconing initiated.")
